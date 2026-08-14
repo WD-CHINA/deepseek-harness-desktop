@@ -8,7 +8,7 @@
 
 [项目官网](https://wd-china.github.io/deepseek-harness-desktop/) · [下载版本](https://github.com/WD-CHINA/deepseek-harness-desktop/releases) · 发布指南
 
-DeepSeek Harness Desktop social preview
+![DeepSeek Harness Desktop social preview](site/og.png)
 
 ## 项目简介
 
