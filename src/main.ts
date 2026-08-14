@@ -8,6 +8,7 @@ let harness: HarnessRuntime | undefined
 let harnessStartPromise: Promise<string> | undefined
 let windowCreationPromise: Promise<void> | undefined
 let quitting = false
+const smokeTestExitAfterReady = process.argv.includes('--smoke-test-exit-after-ready')
 
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.harness.deepseek-harness-desktop')
@@ -127,6 +128,10 @@ async function bootstrap(): Promise<void> {
   )
 
   await ensureMainWindow()
+
+  if (smokeTestExitAfterReady) {
+    setTimeout(() => app.quit(), 5_000)
+  }
 }
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock()

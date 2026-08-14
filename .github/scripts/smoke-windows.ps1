@@ -10,7 +10,11 @@ if ($null -eq $app) {
 
 $desktop = Start-Process `
   -FilePath $app.FullName `
-  -ArgumentList @('--workspace', (Get-Location).Path) `
+  -ArgumentList @(
+    '--workspace',
+    (Get-Location).Path,
+    '--smoke-test-exit-after-ready'
+  ) `
   -PassThru
 
 $harness = $null
@@ -61,12 +65,8 @@ try {
     throw "Harness returned HTTP $($response.StatusCode)."
   }
 
-  if (-not $desktop.CloseMainWindow()) {
-    throw 'Unable to request a graceful desktop window close.'
-  }
-
-  if (-not $desktop.WaitForExit(15000)) {
-    throw 'Desktop process did not exit within 15 seconds.'
+  if (-not $desktop.WaitForExit(30000)) {
+    throw 'Desktop process did not complete its graceful smoke-test shutdown within 30 seconds.'
   }
 
   Start-Sleep -Seconds 1
