@@ -53,12 +53,18 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run build
       - name: Build unpacked macOS application
         if: matrix.platform == 'mac'
-        run: npx electron-builder --mac --${{ matrix.arch }} --dir -c.mac.identity=null -c.mac.notarize=false
+        run: >-
+          npx electron-builder --mac --${{ matrix.arch }} --dir --publish never
+          --config.mac.identity=null --config.mac.notarize=false
+          --config.mac.hardenedRuntime=false
       - name: Build unpacked Windows application
         if: matrix.platform == 'win'
-        run: npx electron-builder --win --${{ matrix.arch }} --dir
+        run: >-
+          npx electron-builder --win --${{ matrix.arch }} --dir --publish never
+          --config.forceCodeSigning=false
       - name: Smoke test Windows lifecycle
         if: matrix.platform == 'win'
         shell: pwsh

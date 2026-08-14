@@ -49,6 +49,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run build
       - name: Require macOS signing and notarization secrets
         shell: bash
         env:
@@ -66,7 +67,9 @@ jobs:
             fi
           done
       - name: Build, sign and notarize
-        run: npx electron-builder --mac --${{ matrix.arch }} --publish never -c.forceCodeSigning=true
+        run: >-
+          npx electron-builder --mac --${{ matrix.arch }} --publish never
+          --config.forceCodeSigning=true
         env:
           CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
@@ -93,6 +96,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run build
       - name: Require Windows signing secrets
         shell: pwsh
         env:
@@ -107,7 +111,9 @@ jobs:
             exit 1
           }
       - name: Build and sign
-        run: npx electron-builder --win --x64 --publish never -c.forceCodeSigning=true
+        run: >-
+          npx electron-builder --win --x64 --publish never
+          --config.forceCodeSigning=true
         env:
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
