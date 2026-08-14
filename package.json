@@ -9,7 +9,7 @@
     "type": "git",
     "url": "git+ssh://git@github.com/WD-CHINA/deepseek-harness-desktop.git"
   },
-  "homepage": "https://github.com/WD-CHINA/deepseek-harness-desktop#readme",
+  "homepage": "https://wd-china.github.io/deepseek-harness-desktop/",
   "bugs": {
     "url": "https://github.com/WD-CHINA/deepseek-harness-desktop/issues"
   },
@@ -17,6 +17,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "pages:build": "node scripts/build-pages.mjs",
     "dev": "npm run build && electron .",
     "start": "npm run build && electron .",
     "typecheck": "tsc -p tsconfig.json --noEmit",

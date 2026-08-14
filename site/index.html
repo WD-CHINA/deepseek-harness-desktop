@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#07110f" />
+    <meta
+      name="description"
+      content="DeepSeek Harness Desktop：面向 macOS 和 Windows 的 DeepSeek Harness 原生桌面客户端。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://wd-china.github.io/deepseek-harness-desktop/" />
+    <meta property="og:title" content="DeepSeek Harness Desktop" />
+    <meta
+      property="og:description"
+      content="把 DeepSeek Harness 带到安全、原生、跨平台的桌面工作流。"
+    />
+    <meta property="og:image" content="./og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="https://wd-china.github.io/deepseek-harness-desktop/" />
+    <link rel="icon" href="./assets/icon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>DeepSeek Harness Desktop</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到主要内容</a>
+
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="DeepSeek Harness Desktop 首页">
+        <img src="./assets/icon.png" alt="" width="40" height="40" />
+        <span>DeepSeek Harness Desktop</span>
+      </a>
+      <nav aria-label="主导航">
+        <a href="#architecture">架构</a>
+        <a href="#platforms">平台</a>
+        <a href="#quick-start">开始使用</a>
+        <a class="nav-github" href="https://github.com/WD-CHINA/deepseek-harness-desktop">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top">
+        <div class="hero-copy">
+          <p class="eyebrow">NATIVE DESKTOP HARNESS</p>
+          <h1>把 DeepSeek Harness<br /><span>带到桌面。</span></h1>
+          <p class="hero-lede">
+            一个面向 macOS 与 Windows 的 Electron 桌面宿主。应用启动本地 Harness Web UI，
+            管理完整进程生命周期，并把运行数据留在你的设备上。
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="https://github.com/WD-CHINA/deepseek-harness-desktop/releases">
+              获取桌面版
+            </a>
+            <a class="button button-secondary" href="https://github.com/WD-CHINA/deepseek-harness-desktop">
+              查看源码 <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+          <div class="platform-list" aria-label="支持信息">
+            <span>macOS · Apple Silicon / Intel</span>
+            <span>Windows · x64</span>
+            <span>v0.0.1</span>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-label="DeepSeek Harness Desktop 应用示意图">
+          <div class="signal-grid" aria-hidden="true"></div>
+          <div class="app-window">
+            <div class="window-bar">
+              <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span>localhost · secure session</span>
+            </div>
+            <div class="window-body">
+              <aside>
+                <img src="./assets/icon.png" alt="" width="48" height="48" />
+                <i></i><i></i><i></i><i></i>
+              </aside>
+              <div class="terminal-panel">
+                <p><b>Harness</b><span class="status-dot"></span> Ready</p>
+                <code><span>$</span> dsh web --hostname 127.0.0.1</code>
+                <code class="dim">Workspace initialized</code>
+                <div class="prompt-card">
+                  <small>NEW TASK</small>
+                  <strong>Describe what you want to build…</strong>
+                  <button type="button" tabindex="-1">Run <span>↗</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="orbit-label orbit-one">LOCAL FIRST</span>
+          <span class="orbit-label orbit-two">PROCESS SAFE</span>
+        </div>
+      </section>
+
+      <section class="section" id="architecture">
+        <div class="section-heading">
+          <p class="eyebrow">HOW IT WORKS</p>
+          <h2>原生外壳，清晰边界。</h2>
+          <p>桌面进程负责启动、探活和清理，Harness 专注提供任务界面与运行能力。</p>
+        </div>
+
+        <div class="architecture" aria-label="应用架构流程">
+          <article>
+            <span class="step">01</span>
+            <h3>Electron Main</h3>
+            <p>创建隔离窗口并选择工作区。</p>
+          </article>
+          <span class="connector" aria-hidden="true">→</span>
+          <article>
+            <span class="step">02</span>
+            <h3>Bundled DSH</h3>
+            <p>使用内置 Node 启动本地服务。</p>
+          </article>
+          <span class="connector" aria-hidden="true">→</span>
+          <article>
+            <span class="step">03</span>
+            <h3>Loopback UI</h3>
+            <p>仅通过随机本机端口加载页面。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="feature-grid section" id="platforms">
+        <article class="feature feature-large">
+          <p class="eyebrow">CROSS-PLATFORM</p>
+          <h2>每个平台，原生构建。</h2>
+          <p>
+            GitHub Actions 分别在 macOS 与 Windows runner 上打包，避免跨平台工具链带来的签名和原生模块偏差。
+          </p>
+          <div class="os-cards">
+            <span><b>⌘</b> macOS<br /><small>arm64 · x64</small></span>
+            <span><b>⊞</b> Windows<br /><small>x64 · NSIS</small></span>
+          </div>
+        </article>
+        <article class="feature">
+          <p class="eyebrow">LIFECYCLE</p>
+          <h3>窗口关闭，进程也结束。</h3>
+          <p>显式管理 DSH 子进程树，覆盖 macOS 与 Windows 的退出语义。</p>
+          <div class="pulse-line" aria-hidden="true"><span></span></div>
+        </article>
+        <article class="feature">
+          <p class="eyebrow">ISOLATION</p>
+          <h3>默认收紧桌面边界。</h3>
+          <p>启用上下文隔离，禁用 Node 集成，并限制非预期导航和弹窗。</p>
+          <div class="lock-mark" aria-hidden="true">◇<i></i></div>
+        </article>
+      </section>
+
+      <section class="quick-start section" id="quick-start">
+        <div>
+          <p class="eyebrow">FOR DEVELOPERS</p>
+          <h2>三步开始开发。</h2>
+          <p>需要 Node.js 22。克隆、安装依赖，然后启动 Electron。</p>
+        </div>
+        <div class="code-block">
+          <div class="code-toolbar">
+            <span>Terminal</span>
+            <button id="copy-command" type="button" data-copy="git clone git@github.com:WD-CHINA/deepseek-harness-desktop.git&#10;cd deepseek-harness-desktop&#10;npm install && npm start">
+              复制
+            </button>
+          </div>
+          <pre><code><span>git clone</span> git@github.com:WD-CHINA/deepseek-harness-desktop.git
+<span>cd</span> deepseek-harness-desktop
+<span>npm install</span> && npm start</code></pre>
+        </div>
+      </section>
+
+      <section class="cta section">
+        <img src="./assets/icon.png" alt="DeepSeek Harness Desktop 图标" width="96" height="96" />
+        <div>
+          <p class="eyebrow">OPEN SOURCE DESKTOP</p>
+          <h2>让 Harness 成为你的桌面工作流。</h2>
+        </div>
+        <a class="button button-primary" href="https://github.com/WD-CHINA/deepseek-harness-desktop">在 GitHub 查看</a>
+      </section>
+    </main>
+
+    <footer>
+      <span>DeepSeek Harness Desktop · Built by Bill</span>
+      <span>© <span id="current-year">2026</span></span>
+    </footer>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
