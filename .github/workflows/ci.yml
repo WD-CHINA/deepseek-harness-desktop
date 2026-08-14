@@ -58,7 +58,7 @@ jobs:
         if: matrix.platform == 'mac'
         run: >-
           npx electron-builder --mac --${{ matrix.arch }} --dir --publish never
-          --config.mac.identity=null --config.mac.notarize=false
+          --config.mac.identity=- --config.mac.notarize=false
           --config.mac.hardenedRuntime=false
       - name: Build unpacked Windows application
         if: matrix.platform == 'win'

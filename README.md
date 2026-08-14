@@ -92,16 +92,23 @@ Harness Web UI 首次使用时仍需添加并选中工作区，然后才能发�
 - `DeepSeek Harness Desktop-<version>-mac-x64-unsigned.dmg` 和 `.zip`
 - `DeepSeek Harness Desktop-<version>-win-x64-unsigned.exe`
 
-工作流完成后，从运行详情底部的 **Artifacts** 下载。Artifact 名称同样包含 `unsigned`，保留 7 天。这些文件仅用于开发、自测和受信任测试人员验证，不会上传到 GitHub Releases，也不会替代正式签名发布流程。
+工作流完成后，可以从运行详情底部的 **Artifacts** 下载，Artifact 名称包含 `unsigned` 并保留 7 天；工作流还会创建或更新 `v0.0.1` GitHub Release。这些文件仅用于开发、自测和受信任测试人员验证，不会替代正式签名发布流程。
 
 > [!WARNING]
 > 未签名软件无法证明发布者身份，也不能证明下载后未被篡改。只运行来自本仓库受信任 Commit 的 Artifact，并在安装前核对工作流、Commit 和文件名。不要将未签名测试包宣传为正式安装包。
 
-macOS 会由 Gatekeeper 阻止首次打开。确认来源可信后，可在 Finder 中右键应用并选择 **打开**，或前往 **系统设置 → 隐私与安全性** 审核并允许。本工作流仅为测试构建关闭 Hardened Runtime；正式 Release 仍强制启用 Hardened Runtime、Developer ID 签名和 Apple 公证。
+macOS 应用使用不含开发者身份的 ad-hoc 签名，Gatekeeper 仍会阻止首次打开。确认来源可信后，可在 Finder 中右键应用并选择 **打开**，或前往 **系统设置 → 隐私与安全性** 审核并允许。如果系统仍提示应用“已损坏”，确认应用确实来自本仓库后，可在安装到 Applications 后执行：
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/DeepSeek Harness Desktop.app"
+open "/Applications/DeepSeek Harness Desktop.app"
+```
+
+第一条命令只移除这个应用的下载隔离属性，不会让系统信任其他未知软件；第二条命令用于启动应用。本工作流仅为测试构建关闭 Hardened Runtime；正式 Release 仍强制启用 Hardened Runtime、Developer ID 签名和 Apple 公证。
 
 Windows 会显示“未知发布者”或 Microsoft Defender SmartScreen 提示。确认来源可信后，测试人员可以选择 **更多信息 → 仍要运行**；企业安全策略可能完全禁止绕过。自签名证书不会让普通 Windows 设备自动信任该应用。
 
-不要在没有签名 Secrets 时推送 `v*` 标签。现有 `.github/workflows/release.yml` 保持为正式签名流程，未来取得证书后可直接使用。
+现有 `.github/workflows/release.yml` 保持为手动正式签名流程，不会被测试标签自动触发；未来取得证书后，输入已有正式版本标签即可使用。
 
 ## 升级 `@deepseek-ai/dsh`
 

@@ -64,10 +64,18 @@ jobs:
         shell: bash
         run: |
           npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never \
-            --config.mac.identity=null \
+            --config.mac.identity=- \
             --config.mac.notarize=false \
             --config.mac.hardenedRuntime=false \
             '--config.artifactName=${productName}-${version}-${os}-${arch}-unsigned.${ext}'
+
+      - name: Verify ad-hoc macOS signature
+        if: matrix.platform == 'mac'
+        shell: bash
+        run: |
+          app_path="$(find release -maxdepth 2 -type d -name 'DeepSeek Harness Desktop.app' -print -quit)"
+          test -n "$app_path"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
 
       - name: Build unsigned Windows NSIS installer
         if: matrix.platform == 'win'
@@ -126,8 +134,16 @@ jobs:
           > [!WARNING]
           > 这是未签名测试版本，仅用于可信环境中的功能验证。
 
-          macOS 会显示 Gatekeeper 安全警告，Windows 可能显示 SmartScreen 警告。
+          macOS 应用使用不含开发者身份的 ad-hoc 签名，仍会显示 Gatekeeper 安全警告；
+          Windows 可能显示 SmartScreen 警告。
           请只下载并运行来自本仓库 Actions 构建的文件。
+
+          如果确认 macOS 应用来自本仓库，但系统仍提示“已损坏”，安装到 Applications 后执行：
+
+          ```bash
+          xattr -dr com.apple.quarantine "/Applications/DeepSeek Harness Desktop.app"
+          open "/Applications/DeepSeek Harness Desktop.app"
+          ```
           EOF
 
           shopt -s nullglob
