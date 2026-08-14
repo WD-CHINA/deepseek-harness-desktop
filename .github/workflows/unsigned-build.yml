@@ -60,18 +60,18 @@ jobs:
         shell: bash
         run: |
           npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never \
-            -c.mac.identity=null \
-            -c.mac.notarize=false \
-            -c.mac.hardenedRuntime=false \
-            '-c.artifactName=${productName}-${version}-${os}-${arch}-unsigned.${ext}'
+            --config.mac.identity=null \
+            --config.mac.notarize=false \
+            --config.mac.hardenedRuntime=false \
+            '--config.artifactName=${productName}-${version}-${os}-${arch}-unsigned.${ext}'
 
       - name: Build unsigned Windows NSIS installer
         if: matrix.platform == 'win'
         shell: pwsh
         run: |
           npx electron-builder --win nsis --${{ matrix.arch }} --publish never `
-            -c.forceCodeSigning=false `
-            '-c.artifactName=${productName}-${version}-${os}-${arch}-unsigned.${ext}'
+            --config.forceCodeSigning=false `
+            '--config.artifactName=${productName}-${version}-${os}-${arch}-unsigned.${ext}'
 
       - name: Smoke test Windows lifecycle
         if: matrix.platform == 'win'
