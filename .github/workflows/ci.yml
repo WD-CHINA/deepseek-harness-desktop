@@ -60,6 +60,10 @@ jobs:
           npx electron-builder --mac --${{ matrix.arch }} --dir --publish never
           --config.mac.identity=- --config.mac.notarize=false
           --config.mac.hardenedRuntime=false
+      - name: Smoke test macOS lifecycle
+        if: matrix.platform == 'mac'
+        shell: bash
+        run: ./.github/scripts/smoke-macos.sh
       - name: Build unpacked Windows application
         if: matrix.platform == 'win'
         run: >-

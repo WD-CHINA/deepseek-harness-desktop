@@ -29,7 +29,7 @@ jobs:
         run: |
           app_version="$(node -p "require('./package.json').version")"
           test -n "$app_version"
-          echo "release_tag=v$app_version" >> "$GITHUB_OUTPUT"
+          echo "release_tag=v$app_version-unsigned.$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
       - run: npm ci
       - run: npm run verify
 
@@ -82,6 +82,11 @@ jobs:
           app_path="$(find release -maxdepth 2 -type d -name 'DeepSeek Harness Desktop.app' -print -quit)"
           test -n "$app_path"
           codesign --verify --deep --strict --verbose=2 "$app_path"
+
+      - name: Smoke test macOS lifecycle
+        if: matrix.platform == 'mac'
+        shell: bash
+        run: ./.github/scripts/smoke-macos.sh
 
       - name: Build unsigned Windows NSIS installer
         if: matrix.platform == 'win'
@@ -144,6 +149,10 @@ jobs:
           > [!WARNING]
           > 这是未签名测试版本，仅用于可信环境中的功能验证。
 
+          macOS 应用使用不含开发者身份的 ad-hoc 签名，仍会显示 Gatekeeper 安全警告；
+          Windows 可能显示 SmartScreen 警告。
+          请只下载并运行来自本仓库 Actions 构建的文件。
+
           如果确认 macOS 应用来自本仓库，但系统仍提示“已损坏”，安装到 Applications 后执行：
 
           ```bash
@@ -165,11 +174,11 @@ jobs:
             gh release edit "$RELEASE_TAG" \
               --title "DeepSeek Harness Desktop $RELEASE_TAG (Unsigned Test)" \
               --notes-file release-notes.md \
-              --latest
+              --prerelease
           else
             gh release create "$RELEASE_TAG" "${assets[@]}" \
               --target "$GITHUB_SHA" \
               --title "DeepSeek Harness Desktop $RELEASE_TAG (Unsigned Test)" \
               --notes-file release-notes.md \
-              --latest
+              --prerelease
           fi

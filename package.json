@@ -22,8 +22,10 @@
     "start": "npm run build && electron .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "verify": "npm run check:runtime-deps && npm run typecheck && npm test && npm run build",
+    "verify": "npm run check:runtime-deps && npm run check:licenses && npm run typecheck && npm test && npm run build",
     "check:runtime-deps": "node scripts/check-runtime-dependencies.mjs",
+    "licenses:generate": "node scripts/generate-third-party-notices.mjs",
+    "check:licenses": "node scripts/generate-third-party-notices.mjs --check",
     "pack": "npm run build && electron-builder --dir",
     "pack:mac": "npm run build && electron-builder --mac",
     "pack:win": "npm run build && electron-builder --win",
@@ -68,7 +70,9 @@
     },
     "files": [
       "dist/**/*",
-      "package.json"
+      "package.json",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md"
     ],
     "mac": {
       "category": "public.app-category.developer-tools",

@@ -92,7 +92,7 @@ Harness Web UI 首次使用时仍需添加并选中工作区，然后才能发�
 - `DeepSeek Harness Desktop-<version>-mac-x64-unsigned.dmg` 和 `.zip`
 - `DeepSeek Harness Desktop-<version>-win-x64-unsigned.exe`
 
-工作流完成后，可以从运行详情底部的 **Artifacts** 下载，Artifact 名称包含 `unsigned` 并保留 7 天；工作流还会按照 `package.json` 中的版本号创建或更新对应的 `v<version>` GitHub Release。这些文件仅用于开发、自测和受信任测试人员验证，不会替代正式签名发布流程。
+工作流完成后，可以从运行详情底部的 **Artifacts** 下载，Artifact 名称包含 `unsigned` 并保留 7 天；工作流还会按照 `package.json` 中的版本号和 Actions 运行编号创建或更新 `v<version>-unsigned.<run_number>` prerelease。正式签名流程独占 `v<version>` 标签，测试构建不会覆盖正式版本。这些文件仅用于开发、自测和受信任测试人员验证，不会替代正式签名发布流程。
 
 > [!WARNING]
 > 未签名软件无法证明发布者身份，也不能证明下载后未被篡改。只运行来自本仓库受信任 Commit 的 Artifact，并在安装前核对工作流、Commit 和文件名。不要将未签名测试包宣传为正式安装包。
@@ -141,3 +141,7 @@ AGENTS.md                AI/自动化开发约束
 修改前请阅读 [AGENTS.md](AGENTS.md)。AI 生成代码必须经过人工 Code Review 和目标平台验证，不应在未确认的情况下直接用于正式发布。
 
 本仓库是社区桌面封装项目；DeepSeek Harness 的版权和许可遵循其上游仓库声明。
+
+## 许可证
+
+DeepSeek Harness Desktop 使用 [MIT License](LICENSE)。应用分发的生产依赖及其许可声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
