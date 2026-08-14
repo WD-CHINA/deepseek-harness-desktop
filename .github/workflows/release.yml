@@ -1,24 +1,32 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to sign and publish (for example v0.0.2)
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag }}
   cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ inputs.tag }}
 
 jobs:
   validate:
     name: Validate release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -27,7 +35,7 @@ jobs:
       - name: Match package version to tag
         run: >-
           node -e "const version=require('./package.json').version;
-          if (process.env.GITHUB_REF_NAME !== 'v' + version) {
+          if (process.env.RELEASE_TAG !== 'v' + version) {
           console.error('Tag must be v' + version); process.exit(1) }"
 
   mac:
@@ -43,8 +51,10 @@ jobs:
             runner: macos-15-intel
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -77,7 +87,7 @@ jobs:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-mac-${{ matrix.arch }}
           path: |
@@ -90,8 +100,10 @@ jobs:
     needs: validate
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -120,7 +132,7 @@ jobs:
       - name: Smoke test signed Windows application
         shell: pwsh
         run: ./.github/scripts/smoke-windows.ps1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-win-x64
           path: release/*.exe
@@ -133,7 +145,7 @@ jobs:
       - windows
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: release-*
           path: release-assets
@@ -141,7 +153,8 @@ jobs:
       - name: Publish signed artifacts
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: >-
-          gh release create "$GITHUB_REF_NAME" release-assets/*
+          gh release create "$RELEASE_TAG" release-assets/*
           --verify-tag --generate-notes
-          --title "DeepSeek Harness Desktop $GITHUB_REF_NAME"
+          --title "DeepSeek Harness Desktop $RELEASE_TAG"
