@@ -4,7 +4,11 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  actions: read
+  contents: write
+
+env:
+  RELEASE_TAG: v0.0.1
 
 concurrency:
   group: unsigned-build-${{ github.ref }}
@@ -99,3 +103,51 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
+
+  release:
+    name: Publish v0.0.1 unsigned test release
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download unsigned packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: deepseek-harness-desktop-*-unsigned
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create or update GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cat > release-notes.md <<'EOF'
+          > [!WARNING]
+          > 这是未签名测试版本，仅用于可信环境中的功能验证。
+
+          macOS 会显示 Gatekeeper 安全警告，Windows 可能显示 SmartScreen 警告。
+          请只下载并运行来自本仓库 Actions 构建的文件。
+          EOF
+
+          shopt -s nullglob
+          assets=(release-assets/*-unsigned.dmg release-assets/*-unsigned.zip release-assets/*-unsigned.exe)
+
+          if (( ${#assets[@]} == 0 )); then
+            echo 'No unsigned release assets were downloaded.' >&2
+            exit 1
+          fi
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+            gh release edit "$RELEASE_TAG" \
+              --title "DeepSeek Harness Desktop $RELEASE_TAG (Unsigned Test)" \
+              --notes-file release-notes.md \
+              --latest
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
+              --target "$GITHUB_SHA" \
+              --title "DeepSeek Harness Desktop $RELEASE_TAG (Unsigned Test)" \
+              --notes-file release-notes.md \
+              --latest
+          fi
