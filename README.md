@@ -1,40 +1,20 @@
-<p align="center">
-  <img src="build/icon.png" width="112" height="112" alt="DeepSeek Harness Desktop icon" />
-</p>
 
-<h1 align="center">DeepSeek Harness Desktop</h1>
 
-<p align="center">
-  将 DeepSeek Harness Web UI 封装为安全、原生、跨平台的桌面应用。
-</p>
+# DeepSeek Harness Desktop
 
-<p align="center">
-  <a href="https://github.com/WD-CHINA/deepseek-harness-desktop/actions/workflows/ci.yml"><img src="https://github.com/WD-CHINA/deepseek-harness-desktop/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://github.com/WD-CHINA/deepseek-harness-desktop/actions/workflows/pages.yml"><img src="https://github.com/WD-CHINA/deepseek-harness-desktop/actions/workflows/pages.yml/badge.svg" alt="Pages" /></a>
-  <a href="https://github.com/WD-CHINA/deepseek-harness-desktop/releases"><img src="https://img.shields.io/github/v/release/WD-CHINA/deepseek-harness-desktop?display_name=tag&include_prereleases" alt="Release" /></a>
-  <img src="https://img.shields.io/badge/macOS-arm64%20%7C%20x64-58f0b4" alt="macOS arm64 and x64" />
-  <img src="https://img.shields.io/badge/Windows-x64-58f0b4" alt="Windows x64" />
-</p>
+将 DeepSeek Harness Web UI 封装为安全、原生、跨平台的桌面应用。
 
-<p align="center">
-  <a href="https://wd-china.github.io/deepseek-harness-desktop/">项目官网</a> ·
-  <a href="https://github.com/WD-CHINA/deepseek-harness-desktop/releases">下载版本</a> ·
-  <a href="docs/RELEASING.md">发布指南</a>
-</p>
 
-![DeepSeek Harness Desktop social preview](site/og.png)
+
+[项目官网](https://wd-china.github.io/deepseek-harness-desktop/) · [下载版本](https://github.com/WD-CHINA/deepseek-harness-desktop/releases) · 发布指南
+
+DeepSeek Harness Desktop social preview
 
 ## 项目简介
 
 DeepSeek Harness Desktop 是 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 的 Electron 桌面宿主。Electron 主进程使用自身携带的 Node.js 运行时启动 `dsh web`，从输出中取得系统分配的回环端口，再将本地 Web UI 加载到隔离的 `BrowserWindow` 中。
 
-当前应用信息：
 
-- 应用 ID：`com.harness.deepseek-harness-desktop`
-- 产品名称：`DeepSeek Harness Desktop`
-- 当前版本：`0.0.1`
-- Harness 依赖：`@deepseek-ai/dsh@0.1.0-rc.6`，精确锁定
-- 作者：Bill（仓库不公开作者邮箱）
 
 ## 核心能力
 
@@ -45,6 +25,8 @@ DeepSeek Harness Desktop 是 [deepseek-ai/deepseek-harness](https://github.com/d
 - 单实例运行，并处理窗口重建、后台服务异常退出和渲染进程崩溃。
 - 应用退出时清理完整子进程树：Unix 使用进程组信号，Windows 使用 `taskkill /T`。
 - Harness 配置、会话和凭据存放在 Electron `userData/dsh`，不写入默认 `~/.dsh`。
+
+
 
 ## 架构
 
@@ -87,43 +69,39 @@ Harness Web UI 首次使用时仍需添加并选中工作区，然后才能发�
 
 ## 常用命令
 
-| 命令 | 用途 |
-| --- | --- |
-| `npm start` | 编译并启动开发版 Electron 应用 |
-| `npm run typecheck` | TypeScript 类型检查 |
-| `npm test` | 执行 Vitest 测试 |
-| `npm run verify` | 类型检查、测试和构建 |
-| `npm run pack` | 生成当前平台未压缩应用目录 |
-| `npm run pack:mac` | 生成 macOS 安装产物 |
-| `npm run pack:win` | 生成 Windows 安装产物 |
+
+| 命令                    | 用途                            |
+| --------------------- | ----------------------------- |
+| `npm start`           | 编译并启动开发版 Electron 应用          |
+| `npm run typecheck`   | TypeScript 类型检查               |
+| `npm test`            | 执行 Vitest 测试                  |
+| `npm run verify`      | 类型检查、测试和构建                    |
+| `npm run pack`        | 生成当前平台未压缩应用目录                 |
+| `npm run pack:mac`    | 生成 macOS 安装产物                 |
+| `npm run pack:win`    | 生成 Windows 安装产物               |
 | `npm run pages:build` | 将 GitHub Pages 官网构建到 `_site/` |
+
 
 由于 Harness 运行依赖体积较大，桌面打包和逐文件签名会明显慢于普通 Electron 壳。当前 `asar` 暂时关闭，待 macOS 与 Windows 都验证明确的 unpack 规则后再启用。
 
-## 构建与发布
+## GitHub 未签名测试包
 
-CI 在原生 GitHub-hosted runner 上执行：
+没有 Apple Developer Program 或 Windows 代码签名证书时，可以进入仓库的 **Actions → Unsigned Build → Run workflow** 手动生成：
 
-- macOS arm64：`macos-15`
-- macOS x64：`macos-15-intel`
-- Windows x64：`windows-latest`
+- `DeepSeek Harness Desktop-<version>-mac-arm64-unsigned.dmg` 和 `.zip`
+- `DeepSeek Harness Desktop-<version>-mac-x64-unsigned.dmg` 和 `.zip`
+- `DeepSeek Harness Desktop-<version>-win-x64-unsigned.exe`
 
-Pull Request 和 `main` 分支推送会运行质量检查、未签名打包验证及 Windows 生命周期冒烟测试。推送与 `package.json` 版本一致的 `v*` 标签后，Release 工作流才会尝试签名、公证并创建 GitHub Release。
+工作流完成后，从运行详情底部的 **Artifacts** 下载。Artifact 名称同样包含 `unsigned`，保留 7 天。这些文件仅用于开发、自测和受信任测试人员验证，不会上传到 GitHub Releases，也不会替代正式签名发布流程。
 
-证书不能由仓库安全地“自动生成”。发布者必须提供 Apple Developer ID、App Store Connect API Key 和 Windows Authenticode 证书。完整 Secrets 清单和发布步骤见 [docs/RELEASING.md](docs/RELEASING.md)。
+> [!WARNING]
+> 未签名软件无法证明发布者身份，也不能证明下载后未被篡改。只运行来自本仓库受信任 Commit 的 Artifact，并在安装前核对工作流、Commit 和文件名。不要将未签名测试包宣传为正式安装包。
 
-## GitHub Pages
+macOS 会由 Gatekeeper 阻止首次打开。确认来源可信后，可在 Finder 中右键应用并选择 **打开**，或前往 **系统设置 → 隐私与安全性** 审核并允许。本工作流仅为测试构建关闭 Hardened Runtime；正式 Release 仍强制启用 Hardened Runtime、Developer ID 签名和 Apple 公证。
 
-官网源码位于 `site/`，由 `.github/workflows/pages.yml` 构建并发布。首次部署前，在仓库 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**，随后推送 `main` 即可触发发布。
+Windows 会显示“未知发布者”或 Microsoft Defender SmartScreen 提示。确认来源可信后，测试人员可以选择 **更多信息 → 仍要运行**；企业安全策略可能完全禁止绕过。自签名证书不会让普通 Windows 设备自动信任该应用。
 
-本地预览：
-
-```bash
-npm run pages:build
-python3 -m http.server 4173 --directory _site
-```
-
-访问 `http://127.0.0.1:4173/`。
+不要在没有签名 Secrets 时推送 `v*` 标签。现有 `.github/workflows/release.yml` 保持为正式签名流程，未来取得证书后可直接使用。
 
 ## 升级 `@deepseek-ai/dsh`
 
@@ -146,11 +124,13 @@ site/                   GitHub Pages 静态官网
 scripts/build-pages.mjs 官网构建脚本
 docs/RELEASING.md       签名、公证与发版说明
 .github/workflows/      CI、Release 与 Pages 工作流
-AGENT.md                AI/自动化开发约束
+AGENTS.md                AI/自动化开发约束
 ```
+
+
 
 ## 开发约束
 
-修改前请阅读 [AGENT.md](AGENT.md)。AI 生成代码必须经过人工 Code Review 和目标平台验证，不应在未确认的情况下直接用于正式发布。
+修改前请阅读 [AGENTS.md](AGENTS.md)。AI 生成代码必须经过人工 Code Review 和目标平台验证，不应在未确认的情况下直接用于正式发布。
 
 本仓库是社区桌面封装项目；DeepSeek Harness 的版权和许可遵循其上游仓库声明。
