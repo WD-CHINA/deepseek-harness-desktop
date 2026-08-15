@@ -3,6 +3,7 @@ import { execFile } from 'node:child_process'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { resolveDshBin } from './harness-runtime.js'
+import { createPluginToolsEnv } from './plugin-tools.js'
 
 /**
  * 桌面版内置插件列表。
@@ -16,12 +17,74 @@ const BUNDLED_PLUGINS = ['dsh-better-sidebar', 'dshmarket'] as const
  */
 const INCOMPATIBLE_PACKAGES = ['@deepseek-harness-tui/dsh-tui'] as const
 
+/**
+ * 与 `@deepseek-ai/dsh-app-boot` 的 `PROFILE_TEMPLATES.web` 保持一致。
+ * 缺少这些 bundles 时，`dsh web` 会以空组合启动并永远无法就绪。
+ */
+export const WEB_PROFILE_BUNDLES = [
+  '@deepseek-ai/dsh-base',
+  '@deepseek-ai/dsh-web-app',
+] as const
+
+/**
+ * 与 `@deepseek-ai/dsh-app-boot` 的 `PROFILE_PNPM_WORKSPACE` 保持一致。
+ */
+export const WEB_PROFILE_PNPM_WORKSPACE = `packages:
+  - .
+
+nodeLinker: hoisted
+autoInstallPeers: false
+`
+
+export type ProfileManifest = {
+  name?: string
+  private?: boolean
+  dependencies?: Record<string, string>
+  dsh?: { profile?: { bundles?: string[] } }
+}
+
 function getDshHome(): string {
   return path.join(app.getPath('userData'), 'dsh')
 }
 
 function getProfileDir(): string {
   return path.join(getDshHome(), 'profiles', 'web')
+}
+
+/** 生成与 DSH `initProfile(web)` 等价的最小化 manifest。 */
+export function createWebProfileManifest(): ProfileManifest {
+  return {
+    name: 'dsh-profile-web',
+    private: true,
+    dependencies: {},
+    dsh: { profile: { bundles: [...WEB_PROFILE_BUNDLES] } },
+  }
+}
+
+/**
+ * 修复缺少 `dsh.profile.bundles` 的损坏 profile。
+ * 早期版本曾写入空 package.json，导致 DSH 跳过 web 模板初始化。
+ * 若已有 bundles 则返回 undefined（无需改写）。
+ */
+export function healWebProfileManifest(
+  manifest: ProfileManifest,
+): ProfileManifest | undefined {
+  const bundles = manifest.dsh?.profile?.bundles
+  if (Array.isArray(bundles) && bundles.length > 0) return undefined
+
+  return {
+    ...manifest,
+    name: manifest.name ?? 'dsh-profile-web',
+    private: manifest.private ?? true,
+    dependencies: manifest.dependencies ?? {},
+    dsh: {
+      ...manifest.dsh,
+      profile: {
+        ...manifest.dsh?.profile,
+        bundles: [...WEB_PROFILE_BUNDLES],
+      },
+    },
+  }
 }
 
 /**
@@ -58,40 +121,35 @@ export async function isPluginInstalled(pluginName: string): Promise<boolean> {
 
 /**
  * 确保 profile 目录及其基础配置存在。
- * 若 profile 尚未初始化，创建最小化的 package.json 与 pnpm-workspace.yaml，
- * 使后续 `dsh plugin add` 命令可以正常运行。
+ * package.json / pnpm-workspace.yaml 必须与 DSH `initProfile(web)` 对齐：
+ * 若只写空 package.json，DSH 会认为 profile 已初始化并跳过 web 模板，
+ * 导致 `dsh web` 没有 base/web-app bundles，启动永远无法就绪。
  */
 async function ensureProfileInitialized(): Promise<void> {
   const profileDir = getProfileDir()
   await fs.mkdir(profileDir, { recursive: true })
 
-  // 确保 package.json 存在
   const pkgPath = path.join(profileDir, 'package.json')
   try {
-    await fs.access(pkgPath)
+    const raw = await fs.readFile(pkgPath, 'utf-8')
+    const healed = healWebProfileManifest(JSON.parse(raw) as ProfileManifest)
+    if (healed !== undefined) {
+      await fs.writeFile(pkgPath, JSON.stringify(healed, null, 2) + '\n', 'utf-8')
+      console.log('[plugin-installer] 已修复缺少 web bundles 的 profile manifest')
+    }
   } catch {
     await fs.writeFile(
       pkgPath,
-      JSON.stringify(
-        {
-          name: 'dsh-web-profile',
-          version: '1.0.0',
-          private: true,
-          dependencies: {},
-        },
-        null,
-        2,
-      ) + '\n',
+      JSON.stringify(createWebProfileManifest(), null, 2) + '\n',
       'utf-8',
     )
   }
 
-  // 确保 pnpm-workspace.yaml 存在
   const workspacePath = path.join(profileDir, 'pnpm-workspace.yaml')
   try {
     await fs.access(workspacePath)
   } catch {
-    await fs.writeFile(workspacePath, 'packages: []\n', 'utf-8')
+    await fs.writeFile(workspacePath, WEB_PROFILE_PNPM_WORKSPACE, 'utf-8')
   }
 }
 
@@ -137,8 +195,7 @@ function runDshCommand(args: string[], timeoutMs = 120_000): Promise<string> {
       ['--expose-internals', dshBin, ...args],
       {
         env: {
-          ...process.env,
-          ELECTRON_RUN_AS_NODE: '1',
+          ...createPluginToolsEnv(),
           DSH_HOME: dshHome,
         },
         timeout: timeoutMs,

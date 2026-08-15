@@ -43,7 +43,7 @@ Electron Main
   └─ 关闭应用时终止 Harness 进程树
 ```
 
-桌面壳不复制或修改 Harness 前端。内置插件通过 DSH 官方 plugin 机制自动安装到 `userData/dsh/profiles/web`，下次启动时由 Harness 自动加载。通过 dshmarket 安装的新插件也会在每次启动前自动完成原生构建脚本批准与兼容性修补，无需手动配置。升级 Harness 时，通过精确版本、锁文件、自动化测试和跨平台打包检查控制兼容性风险。
+桌面壳不复制或修改 Harness 前端。内置插件通过 DSH 官方 plugin 机制自动安装到 `userData/dsh/profiles/web`，下次启动时由 Harness 自动加载。桌面壳内置 `pnpm` 并通过 Electron 内置 Node 调用，不依赖用户或 CI 预装 Node/pnpm。通过 dshmarket 安装的新插件也会在每次启动前自动完成原生构建脚本批准与兼容性修补，无需手动配置。升级 Harness 时，通过精确版本、锁文件、自动化测试和跨平台打包检查控制兼容性风险。
 
 ## 本地开发
 
@@ -133,6 +133,7 @@ src/                      Electron 主进程、Harness 运行时、插件安装�
   main.ts                 应用入口与窗口管理
   harness-runtime.ts      DSH 子进程启动与生命周期
   plugin-installer.ts     插件自动安装、profile 预检与 Electron 兼容性修补
+  plugin-tools.ts         内置 pnpm/node 包装，供 dsh plugin 在无系统 Node 环境下运行
   process-tree.ts         跨平台进程树清理
 build/                    图标、macOS entitlements 与打包资源
 site/                     GitHub Pages 静态官网

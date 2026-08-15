@@ -3,6 +3,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { appendTail, findHarnessUrl } from './harness-output.js'
+import { createPluginToolsEnv } from './plugin-tools.js'
 import { terminateProcessTree } from './process-tree.js'
 
 const require = createRequire(import.meta.url)
@@ -47,8 +48,7 @@ export class HarnessRuntime {
       {
         cwd: this.#options.workspace,
         env: {
-          ...process.env,
-          ELECTRON_RUN_AS_NODE: '1',
+          ...createPluginToolsEnv(),
           DSH_HOME: path.join(app.getPath('userData'), 'dsh'),
           // Electron 子进程无法使用 koffi 原生绑定（ABI 不兼容），
           // 设置 SSH_CONNECTION 让 DSH 目录选择器降级到浏览器模式
