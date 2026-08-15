@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, session, shell } from 'electron'
 import path from 'node:path'
 import { HarnessRuntime } from './harness-runtime.js'
 import { hasSameOrigin, isAllowedExternalUrl } from './harness-output.js'
-import { installBetterSidebar, isPluginInstalled } from './plugin-installer.js'
+import { installBundledPlugins, prepareProfile } from './plugin-installer.js'
 
 let mainWindow: BrowserWindow | undefined
 let harness: HarnessRuntime | undefined
@@ -77,7 +77,11 @@ async function createMainWindow(): Promise<void> {
   mainWindow = win
 
   win.webContents.on('will-navigate', (event, targetUrl) => {
-    if (!hasSameOrigin(targetUrl, harnessOrigin)) event.preventDefault()
+    if (!hasSameOrigin(targetUrl, harnessOrigin)) {
+      event.preventDefault()
+      // 外部 HTTP(S) 链接转发到系统浏览器，而非静默阻止
+      if (isAllowedExternalUrl(targetUrl)) void shell.openExternal(targetUrl)
+    }
   })
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -128,20 +132,28 @@ async function bootstrap(): Promise<void> {
     (_webContents, _permission, callback) => callback(false),
   )
 
+  // DSH 启动前预检 profile（构建脚本白名单、冲突包清理、node-pty 补丁）
+  try {
+    await prepareProfile()
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn(`[electron] profile 预检失败（DSH 可能异常）：${message}`)
+  }
+
   await ensureMainWindow()
 
-  // 在窗口就绪后后台安装 better-sidebar 插件
+  // 在窗口就绪后后台安装内置插件
   // 安装成功后下次启动自动加载，避免阻塞首次启动
   void (async () => {
     try {
-      const installed = await isPluginInstalled()
-      if (!installed) {
-        console.log('[electron] better-sidebar 插件尚未安装，正在后台预装...')
-        await installBetterSidebar()
+      console.log('[electron] 正在后台检查并安装内置插件...')
+      const installed = await installBundledPlugins()
+      if (installed.length > 0) {
+        console.log(`[electron] 内置插件已就绪: ${installed.join(', ')}`)
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
-      console.warn(`[electron] better-sidebar 插件安装失败（DSH 仍可正常运行）：${message}`)
+      console.warn(`[electron] 内置插件安装失败（DSH 仍可正常运行）：${message}`)
     }
   })()
 

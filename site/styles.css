@@ -213,6 +213,38 @@ footer { display: flex; justify-content: space-between; padding: 34px 0 48px; co
   line-height: 1.6;
 }
 
+.marketplace-showcase .section-heading { margin-bottom: 60px; }
+.marketplace-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line);
+  padding: 1px;
+}
+.mp-feature {
+  padding: 48px 36px;
+  background: var(--panel);
+  transition: background 200ms ease;
+}
+.mp-feature:hover { background: var(--panel-light); }
+.mp-icon {
+  display: block;
+  margin-bottom: 20px;
+  font-size: 32px;
+  filter: grayscale(0.3);
+}
+.mp-feature h3 {
+  margin: 0 0 10px;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+.mp-feature p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 @media (max-width: 860px) {
   nav a:not(.nav-github) { display: none; }
   .hero { grid-template-columns: 1fr; padding-top: 70px; }
@@ -223,6 +255,7 @@ footer { display: flex; justify-content: space-between; padding: 34px 0 48px; co
   .feature-grid { grid-template-columns: 1fr; }
   .feature-large { min-height: 600px; }
   .sidebar-features { grid-template-columns: repeat(2, 1fr); }
+  .marketplace-grid { grid-template-columns: repeat(2, 1fr); }
   .cta { grid-template-columns: auto 1fr; }
   .cta .button { grid-column: 1 / -1; }
 }
@@ -243,6 +276,7 @@ footer { display: flex; justify-content: space-between; padding: 34px 0 48px; co
   .os-cards { grid-template-columns: 1fr; }
   .sidebar-features { grid-template-columns: 1fr; }
   .sidebar-card { min-height: auto; }
+  .marketplace-grid { grid-template-columns: 1fr; }
   .cta { grid-template-columns: 1fr; }
   footer { flex-direction: column; gap: 8px; }
 }

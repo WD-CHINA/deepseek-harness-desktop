@@ -18,7 +18,8 @@ DeepSeek Harness Desktop 是 [deepseek-ai/deepseek-harness](https://github.com/d
 
 ## 核心能力
 
-- 内置 [DSH Better Sidebar](https://github.com/omdsh-dev/DSH-better-sidebar) 侧边栏工作台：文件管理、代码编辑、内嵌浏览器、终端、Git 面板、后台任务，首次启动自动安装。
+- 内置 [DSH Better Sidebar](https://github.com/omdsh-dev/DSH-better-sidebar) 侧边栏工作台与 [DSH Market](https://github.com/dsh-market/dsh-market) 可视化插件市场，首次启动自动安装。
+- 插件自动注册：每次启动前自动批准原生构建脚本、清理不兼容包、修补 node-pty 兼容性，dshmarket 安装的新插件无需手动配置。
 - 支持 macOS Apple Silicon、macOS Intel 和 Windows x64 原生构建。
 - Harness 服务仅监听 `127.0.0.1` 的系统随机端口。
 - 开启 `contextIsolation`、沙箱和 Web 安全，关闭渲染进程 Node.js 集成。
@@ -33,15 +34,16 @@ DeepSeek Harness Desktop 是 [deepseek-ai/deepseek-harness](https://github.com/d
 
 ```text
 Electron Main
+  ├─ 启动前 profile 预检（构建脚本白名单、冲突包清理、node-pty 补丁）
   ├─ 创建隔离 BrowserWindow
   ├─ 启动 Electron 内置 Node.js
   │    └─ @deepseek-ai/dsh → dsh web --port 0
-  ├─ 后台预装 dsh-better-sidebar 插件（首次启动）
+  ├─ 后台预装 dsh-better-sidebar + dshmarket 插件（首次启动）
   ├─ 解析 http://127.0.0.1:<port>
   └─ 关闭应用时终止 Harness 进程树
 ```
 
-桌面壳不复制或修改 Harness 前端。Better Sidebar 插件通过 DSH 官方 plugin 机制自动安装到 `userData/dsh/profiles/web`，下次启动时由 Harness 自动加载。升级 Harness 时，通过精确版本、锁文件、自动化测试和跨平台打包检查控制兼容性风险。
+桌面壳不复制或修改 Harness 前端。内置插件通过 DSH 官方 plugin 机制自动安装到 `userData/dsh/profiles/web`，下次启动时由 Harness 自动加载。通过 dshmarket 安装的新插件也会在每次启动前自动完成原生构建脚本批准与兼容性修补，无需手动配置。升级 Harness 时，通过精确版本、锁文件、自动化测试和跨平台打包检查控制兼容性风险。
 
 ## 本地开发
 
@@ -130,7 +132,7 @@ npm run pack
 src/                      Electron 主进程、Harness 运行时、插件安装与测试
   main.ts                 应用入口与窗口管理
   harness-runtime.ts      DSH 子进程启动与生命周期
-  plugin-installer.ts     Better Sidebar 插件自动安装
+  plugin-installer.ts     插件自动安装、profile 预检与 Electron 兼容性修补
   process-tree.ts         跨平台进程树清理
 build/                    图标、macOS entitlements 与打包资源
 site/                     GitHub Pages 静态官网
@@ -153,13 +155,22 @@ AGENTS.md                 AI/自动化开发约束
 | 后台任务 | subagent 拓扑与任务管理 |
 | 双工作台 | 右侧栏 + 底部面板，支持拖拽拆分 |
 
-插件安装失败时 DSH 仍可正常运行（无侧边栏降级）。如需手动更新或重装，可在 DSH web profile 目录执行：
+## DSH Market 插件市场
 
-```bash
-dsh plugin --profile web add dsh-better-sidebar
-```
+桌面版内置 [DSH Market](https://github.com/dsh-market/dsh-market) 可视化插件市场，打开 **设置 → Plugin Market** 即可浏览、搜索、一键安装社区 300+ 插件。
 
+- 分类筛选、星标排序、中英双语描述
+- 主题标签页：社区皮肤一键切换，无需重启
+- 安装 / 更新 / 卸载全程可视化，支持日志导出
+- 插件来源限制在 [awesome-dsh-plugin](https://awesome-dsh-plugin.com) 审核目录内
 
+### 插件自动注册
+
+通过 dshmarket 安装的插件会在下次启动时自动完成以下处理，无需手动配置：
+
+1. **构建脚本批准**：自动批准所有原生模块的 `set this to true or false` 占位（如 node-pty、ssh2、cloudflared 等）
+2. **不兼容包清理**：自动移除与 web 基础包冲突的终端 TUI 包
+3. **node-pty 补丁**：修补 `conpty_console_list_agent.js`，使 `AttachConsole()` 在 `ELECTRON_RUN_AS_NODE` 环境下优雅降级
 
 ## 开发约束
 
