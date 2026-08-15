@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { createTerminationPlan } from './process-tree.js'
 
 describe('createTerminationPlan', () => {
-  it('uses taskkill to stop the complete Windows process tree', () => {
+  it('uses taskkill /F to stop the complete Windows process tree', () => {
+    // Windows 上 taskkill /T 在目标进程是当前进程的子进程时必须使用 /F，
+    // 因此统一使用 /F 参数。
     expect(createTerminationPlan(42, false, 'win32')).toEqual({
       kind: 'command',
       file: 'taskkill.exe',
-      args: ['/PID', '42', '/T'],
+      args: ['/PID', '42', '/T', '/F'],
     })
 
     expect(createTerminationPlan(42, true, 'win32')).toEqual({

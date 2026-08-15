@@ -43,13 +43,16 @@ export class HarnessRuntime {
 
     const child = spawn(
       process.execPath,
-      ['--expose-internals', resolveHarnessBin(), 'web', '--port', '0'],
+      ['--expose-internals', resolveDshBin(), 'web', '--port', '0'],
       {
         cwd: this.#options.workspace,
         env: {
           ...process.env,
           ELECTRON_RUN_AS_NODE: '1',
           DSH_HOME: path.join(app.getPath('userData'), 'dsh'),
+          // Electron 子进程无法使用 koffi 原生绑定（ABI 不兼容），
+          // 设置 SSH_CONNECTION 让 DSH 目录选择器降级到浏览器模式
+          SSH_CONNECTION: 'electron-desktop',
         },
         detached: process.platform !== 'win32',
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -160,7 +163,7 @@ export class HarnessRuntime {
   }
 }
 
-function resolveHarnessBin(): string {
+export function resolveDshBin(): string {
   const packageJson = require.resolve('@deepseek-ai/dsh/package.json')
   return path.join(path.dirname(packageJson), 'lib', 'bin.js')
 }

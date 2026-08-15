@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, session, shell } from 'electron'
 import path from 'node:path'
 import { HarnessRuntime } from './harness-runtime.js'
 import { hasSameOrigin, isAllowedExternalUrl } from './harness-output.js'
+import { installBetterSidebar, isPluginInstalled } from './plugin-installer.js'
 
 let mainWindow: BrowserWindow | undefined
 let harness: HarnessRuntime | undefined
@@ -128,6 +129,21 @@ async function bootstrap(): Promise<void> {
   )
 
   await ensureMainWindow()
+
+  // 在窗口就绪后后台安装 better-sidebar 插件
+  // 安装成功后下次启动自动加载，避免阻塞首次启动
+  void (async () => {
+    try {
+      const installed = await isPluginInstalled()
+      if (!installed) {
+        console.log('[electron] better-sidebar 插件尚未安装，正在后台预装...')
+        await installBetterSidebar()
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn(`[electron] better-sidebar 插件安装失败（DSH 仍可正常运行）：${message}`)
+    }
+  })()
 
   if (smokeTestExitAfterReady) {
     setTimeout(() => app.quit(), 5_000)

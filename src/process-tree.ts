@@ -23,10 +23,13 @@ export function createTerminationPlan(
   }
 
   if (platform === 'win32') {
+    // taskkill /T 在目标进程是当前进程的子进程时必须使用 /F，
+    // 否则会拒绝终止。既然我们总是终止自己创建的子进程树，
+    // 统一使用 /F 避免非强制终止失败。
     return {
       kind: 'command',
       file: 'taskkill.exe',
-      args: ['/PID', String(pid), '/T', ...(force ? ['/F'] : [])],
+      args: ['/PID', String(pid), '/T', '/F'],
     }
   }
 
