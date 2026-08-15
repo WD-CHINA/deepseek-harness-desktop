@@ -11,10 +11,16 @@ import {
 } from './plugin-tools.js'
 
 /**
- * 桌面版内置插件列表。
- * 首次启动时自动安装到 DSH web profile，后续启动由 Harness 自动加载。
+ * 桌面版内置插件列表（精确版本，与 DSH/依赖锁定策略一致）。
+ * 首次启动安装；后续启动若低于目标版本则升级。
  */
-const BUNDLED_PLUGINS = ['dsh-better-sidebar', 'dshmarket'] as const
+export const BUNDLED_PLUGINS = [
+  { name: 'dsh-better-sidebar', version: '0.12.2' },
+  { name: 'dshmarket', version: '1.5.0' },
+  { name: '@linxin666/dsh-web-ui-all', version: '0.1.15' },
+] as const
+
+export type BundledPlugin = (typeof BUNDLED_PLUGINS)[number]
 
 /**
  * 不应出现在 web profile 中的包（终端 TUI 与 web 基础包冲突）。
@@ -93,35 +99,42 @@ export function healWebProfileManifest(
 }
 
 /**
- * 检查是否所有内置插件都已安装。
- * 用于判断是否为首次启动（需要前台安装插件）。
+ * 检查是否所有内置插件都已安装到目标版本。
+ * 用于判断是否为首次启动 / 需要前台升级。
  */
 export async function allBundledPluginsInstalled(): Promise<boolean> {
-  for (const pluginName of BUNDLED_PLUGINS) {
-    if (!(await isPluginInstalled(pluginName))) return false
+  for (const plugin of BUNDLED_PLUGINS) {
+    if ((await getInstalledPluginVersion(plugin.name)) !== plugin.version) {
+      return false
+    }
   }
   return true
 }
 
 /**
- * 检查指定插件是否已安装在 DSH web profile 中。
- * 通过检查 profile 目录下的 package.json 是否包含插件依赖来判断。
+ * 检查指定插件是否已出现在 DSH web profile 的 package.json 依赖中。
  */
 export async function isPluginInstalled(pluginName: string): Promise<boolean> {
-  const pkgPath = path.join(getProfileDir(), 'package.json')
+  return (await getInstalledPluginVersion(pluginName)) !== undefined
+}
+
+/** 读取 profile node_modules 中已安装插件的实际版本。 */
+export async function getInstalledPluginVersion(
+  pluginName: string,
+): Promise<string | undefined> {
+  const pkgPath = path.join(getProfileDir(), 'node_modules', pluginName, 'package.json')
   try {
     const content = await fs.readFile(pkgPath, 'utf-8')
-    const pkg = JSON.parse(content) as {
-      dependencies?: Record<string, string>
-      devDependencies?: Record<string, string>
-    }
-    return (
-      pkg.dependencies?.[pluginName] !== undefined ||
-      pkg.devDependencies?.[pluginName] !== undefined
-    )
+    const pkg = JSON.parse(content) as { version?: string }
+    return typeof pkg.version === 'string' ? pkg.version : undefined
   } catch {
-    return false
+    return undefined
   }
+}
+
+/** 生成 `dsh plugin add` 使用的精确版本规格。 */
+export function bundledPluginSpec(plugin: BundledPlugin): string {
+  return `${plugin.name}@${plugin.version}`
 }
 
 /**
@@ -287,14 +300,15 @@ async function approveBuildScripts(): Promise<void> {
  *
  * 流程：
  * 1. 确保 minimumReleaseAgeExclude 包含插件名
- * 2. 调用 `dsh plugin --profile web add <pluginName>`
+ * 2. 调用 `dsh plugin --profile web add <name>@<version>`
  */
-async function installPlugin(pluginName: string): Promise<void> {
-  await ensureMinimumReleaseAgeExclude(pluginName)
+async function installPlugin(plugin: BundledPlugin): Promise<void> {
+  await ensureMinimumReleaseAgeExclude(plugin.name)
 
-  console.log(`[plugin-installer] 正在安装 ${pluginName}...`)
-  await runDshCommand(['plugin', '--profile', 'web', 'add', pluginName])
-  console.log(`[plugin-installer] ${pluginName} 安装完成`)
+  const spec = bundledPluginSpec(plugin)
+  console.log(`[plugin-installer] 正在安装 ${spec}...`)
+  await runDshCommand(['plugin', '--profile', 'web', 'add', spec])
+  console.log(`[plugin-installer] ${spec} 安装完成`)
 }
 
 /**
@@ -402,10 +416,10 @@ export async function patchNodePtyConptyAgent(): Promise<void> {
  * 流程：
  * 1. 确保 profile 目录已初始化
  * 2. 写入构建脚本白名单
- * 3. 逐个安装尚未安装的插件
+ * 3. 逐个安装或升级到目标精确版本
  *
  * 每个插件独立 try/catch，单个插件安装失败不影响其他插件。
- * 返回成功安装的插件名列表。
+ * 返回成功安装（含已是目标版本而跳过）的插件名列表。
  */
 export async function installBundledPlugins(): Promise<string[]> {
   const profileDir = getProfileDir()
@@ -420,23 +434,33 @@ export async function installBundledPlugins(): Promise<string[]> {
   // 3. 移除与 web 基础包冲突的包（如 dsh-tui）
   await stripIncompatiblePackages()
 
-  // 4. 逐个检查并安装插件
+  // 4. 逐个检查并安装 / 升级插件
   const installed: string[] = []
 
-  for (const pluginName of BUNDLED_PLUGINS) {
+  for (const plugin of BUNDLED_PLUGINS) {
     try {
-      const alreadyInstalled = await isPluginInstalled(pluginName)
-      if (alreadyInstalled) {
-        console.log(`[plugin-installer] ${pluginName} 已安装，跳过`)
-        installed.push(pluginName)
+      const current = await getInstalledPluginVersion(plugin.name)
+      if (current === plugin.version) {
+        console.log(
+          `[plugin-installer] ${plugin.name}@${plugin.version} 已安装，跳过`,
+        )
+        installed.push(plugin.name)
         continue
       }
 
-      await installPlugin(pluginName)
-      installed.push(pluginName)
+      if (current !== undefined) {
+        console.log(
+          `[plugin-installer] ${plugin.name} 将从 ${current} 升级到 ${plugin.version}`,
+        )
+      }
+
+      await installPlugin(plugin)
+      installed.push(plugin.name)
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
-      console.warn(`[plugin-installer] ${pluginName} 安装失败（不影响其他插件）：${message}`)
+      console.warn(
+        `[plugin-installer] ${plugin.name}@${plugin.version} 安装失败（不影响其他插件）：${message}`,
+      )
     }
   }
 

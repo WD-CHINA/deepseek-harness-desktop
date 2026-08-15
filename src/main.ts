@@ -174,7 +174,7 @@ async function bootstrap(): Promise<void> {
           <div class="container">
             <div class="spinner"></div>
             <h3>正在安装内置插件</h3>
-            <p>首次启动需要安装侧边栏和插件市场，请稍候…</p>
+            <p>首次启动需要安装侧边栏、插件市场与 Web UI 全家桶，请稍候…</p>
           </div>
         </body></html>
       `)}`

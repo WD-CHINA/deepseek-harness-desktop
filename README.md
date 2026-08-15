@@ -18,7 +18,7 @@ DeepSeek Harness Desktop 是 [deepseek-ai/deepseek-harness](https://github.com/d
 
 ## 核心能力
 
-- 内置 [DSH Better Sidebar](https://github.com/omdsh-dev/DSH-better-sidebar) 侧边栏工作台与 [DSH Market](https://github.com/dsh-market/dsh-market) 可视化插件市场，首次启动自动安装。
+- 内置 [DSH Better Sidebar](https://github.com/omdsh-dev/DSH-better-sidebar) `0.12.2`、[DSH Market](https://github.com/dsh-market/dsh-market) `1.5.0` 与 [@linxin666/dsh-web-ui-all](https://www.npmjs.com/package/@linxin666/dsh-web-ui-all) `0.1.15`（Web UI 全家桶），首次启动自动安装，已装旧版会升级到上述精确版本。
 - 插件自动注册：每次启动前自动批准原生构建脚本、清理不兼容包、修补 node-pty 兼容性，dshmarket 安装的新插件无需手动配置。
 - 支持 macOS Apple Silicon、macOS Intel 和 Windows x64 原生构建。
 - Harness 服务仅监听 `127.0.0.1` 的系统随机端口。
@@ -38,7 +38,7 @@ Electron Main
   ├─ 创建隔离 BrowserWindow
   ├─ 启动 Electron 内置 Node.js
   │    └─ @deepseek-ai/dsh → dsh web --port 0
-  ├─ 后台预装 dsh-better-sidebar + dshmarket 插件（首次启动）
+  ├─ 后台预装 dsh-better-sidebar + dshmarket + @linxin666/dsh-web-ui-all（首次启动）
   ├─ 解析 http://127.0.0.1:<port>
   └─ 关闭应用时终止 Harness 进程树
 ```

@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   createWebProfileManifest,
   healWebProfileManifest,
+  bundledPluginSpec,
+  BUNDLED_PLUGINS,
   WEB_PROFILE_BUNDLES,
 } from './plugin-installer.js'
 import { ensurePluginToolsBinDir, prependPathEntry, ensureNpmrcRegistry, resolvePluginNpmRegistry, DEFAULT_NPM_REGISTRY, CI_NPM_REGISTRY } from './plugin-tools.js'
@@ -17,6 +19,19 @@ describe('createWebProfileManifest', () => {
       dependencies: {},
       dsh: { profile: { bundles: [...WEB_PROFILE_BUNDLES] } },
     })
+  })
+})
+
+describe('bundled plugins', () => {
+  it('pins exact latest target versions for add specs', () => {
+    expect(BUNDLED_PLUGINS).toEqual([
+      { name: 'dsh-better-sidebar', version: '0.12.2' },
+      { name: 'dshmarket', version: '1.5.0' },
+      { name: '@linxin666/dsh-web-ui-all', version: '0.1.15' },
+    ])
+    expect(bundledPluginSpec(BUNDLED_PLUGINS[0])).toBe('dsh-better-sidebar@0.12.2')
+    expect(bundledPluginSpec(BUNDLED_PLUGINS[1])).toBe('dshmarket@1.5.0')
+    expect(bundledPluginSpec(BUNDLED_PLUGINS[2])).toBe('@linxin666/dsh-web-ui-all@0.1.15')
   })
 })
 
