@@ -32,6 +32,7 @@
       </a>
       <nav aria-label="主导航">
         <a href="#architecture">架构</a>
+        <a href="#sidebar">侧边栏</a>
         <a href="#platforms">平台</a>
         <a href="#quick-start">开始使用</a>
         <a class="nav-github" href="https://github.com/WD-CHINA/deepseek-harness-desktop">GitHub</a>
@@ -45,7 +46,7 @@
           <h1>把 DeepSeek Harness<br /><span>带到桌面。</span></h1>
           <p class="hero-lede">
             一个面向 macOS 与 Windows 的 Electron 桌面宿主。应用启动本地 Harness Web UI，
-            管理完整进程生命周期，并把运行数据留在你的设备上。
+            内置侧边栏工作台，管理完整进程生命周期，并把运行数据留在你的设备上。
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="https://github.com/WD-CHINA/deepseek-harness-desktop/releases">
@@ -115,6 +116,47 @@
             <span class="step">03</span>
             <h3>Loopback UI</h3>
             <p>仅通过随机本机端口加载页面。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section sidebar-showcase" id="sidebar">
+        <div class="section-heading">
+          <p class="eyebrow">BUILT-IN WORKBENCH</p>
+          <h2>侧边栏工作台，开箱即用。</h2>
+          <p>首次启动自动安装 Better Sidebar 插件，为 Harness 带来文件管理、终端、Git 等完整开发工具。</p>
+        </div>
+
+        <div class="sidebar-features">
+          <article class="sidebar-card">
+            <span class="sidebar-icon">&#128193;</span>
+            <h3>文件管理</h3>
+            <p>懒加载目录树 + CodeMirror 编辑器，支持图片、Markdown、HTML 内联预览。</p>
+          </article>
+          <article class="sidebar-card">
+            <span class="sidebar-icon">&#128187;</span>
+            <h3>终端</h3>
+            <p>xterm.js + node-pty 真实 shell，断线重连回放。</p>
+          </article>
+          <article class="sidebar-card">
+            <span class="sidebar-icon">&#127795;</span>
+            <h3>Git 面板</h3>
+            <p>真 diff + VSCode 式 diff tab，暂存、提交、一键还原。</p>
+          </article>
+          <article class="sidebar-card">
+            <span class="sidebar-icon">&#127760;</span>
+            <h3>内嵌浏览器</h3>
+            <p>多开网页 tab，沙箱 iframe 隔离，外链默认在侧边栏打开。</p>
+          </article>
+          <article class="sidebar-card">
+            <span class="sidebar-icon">&#129513;</span>
+            <h3>后台任务</h3>
+            <p>subagent 拓扑 + 后台任务监控，实时输出与强制终止。</p>
+          </article>
+          <article class="sidebar-card">
+            <span class="sidebar-icon">&#129695;</span>
+            <h3>双工作台</h3>
+            <p>右侧栏 + 底部面板，拖拽拆分合并分栏，会话级布局持久化。</p>
           </article>
         </div>
       </section>

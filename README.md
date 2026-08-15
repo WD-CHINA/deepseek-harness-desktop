@@ -18,6 +18,7 @@ DeepSeek Harness Desktop 是 [deepseek-ai/deepseek-harness](https://github.com/d
 
 ## 核心能力
 
+- 内置 [DSH Better Sidebar](https://github.com/omdsh-dev/DSH-better-sidebar) 侧边栏工作台：文件管理、代码编辑、内嵌浏览器、终端、Git 面板、后台任务，首次启动自动安装。
 - 支持 macOS Apple Silicon、macOS Intel 和 Windows x64 原生构建。
 - Harness 服务仅监听 `127.0.0.1` 的系统随机端口。
 - 开启 `contextIsolation`、沙箱和 Web 安全，关闭渲染进程 Node.js 集成。
@@ -35,11 +36,12 @@ Electron Main
   ├─ 创建隔离 BrowserWindow
   ├─ 启动 Electron 内置 Node.js
   │    └─ @deepseek-ai/dsh → dsh web --port 0
+  ├─ 后台预装 dsh-better-sidebar 插件（首次启动）
   ├─ 解析 http://127.0.0.1:<port>
   └─ 关闭应用时终止 Harness 进程树
 ```
 
-桌面壳不复制或修改 Harness 前端。升级 Harness 时，通过精确版本、锁文件、自动化测试和跨平台打包检查控制兼容性风险。
+桌面壳不复制或修改 Harness 前端。Better Sidebar 插件通过 DSH 官方 plugin 机制自动安装到 `userData/dsh/profiles/web`，下次启动时由 Harness 自动加载。升级 Harness 时，通过精确版本、锁文件、自动化测试和跨平台打包检查控制兼容性风险。
 
 ## 本地开发
 
@@ -125,13 +127,36 @@ npm run pack
 ## 项目结构
 
 ```text
-src/                    Electron 主进程、Harness 运行时与测试
-build/                  图标、macOS entitlements 与打包资源
-site/                   GitHub Pages 静态官网
-scripts/build-pages.mjs 官网构建脚本
-docs/RELEASING.md       签名、公证与发版说明
-.github/workflows/      CI、Release 与 Pages 工作流
-AGENTS.md                AI/自动化开发约束
+src/                      Electron 主进程、Harness 运行时、插件安装与测试
+  main.ts                 应用入口与窗口管理
+  harness-runtime.ts      DSH 子进程启动与生命周期
+  plugin-installer.ts     Better Sidebar 插件自动安装
+  process-tree.ts         跨平台进程树清理
+build/                    图标、macOS entitlements 与打包资源
+site/                     GitHub Pages 静态官网
+scripts/build-pages.mjs   官网构建脚本
+docs/RELEASING.md         签名、公证与发版说明
+.github/workflows/        CI、Release 与 Pages 工作流
+AGENTS.md                 AI/自动化开发约束
+```
+
+## Better Sidebar 侧边栏
+
+桌面版内置 [DSH Better Sidebar](https://github.com/omdsh-dev/DSH-better-sidebar) 插件，首次启动时自动安装到 DSH web profile 中，后续启动由 Harness 自动加载。侧边栏提供：
+
+| 功能 | 说明 |
+| --- | --- |
+| 文件工作台 | 资源管理器 + CodeMirror 编辑器；图片 / Markdown / HTML 内联预览 |
+| 内嵌浏览器 | 多开网页 tab，沙箱 iframe 隔离 |
+| 终端 | xterm.js + node-pty 真实 shell |
+| Git 面板 | diff + 历史、暂存 / 提交 / 还原 |
+| 后台任务 | subagent 拓扑与任务管理 |
+| 双工作台 | 右侧栏 + 底部面板，支持拖拽拆分 |
+
+插件安装失败时 DSH 仍可正常运行（无侧边栏降级）。如需手动更新或重装，可在 DSH web profile 目录执行：
+
+```bash
+dsh plugin --profile web add dsh-better-sidebar
 ```
 
 
