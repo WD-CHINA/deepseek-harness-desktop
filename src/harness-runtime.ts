@@ -2,7 +2,9 @@ import { app } from 'electron'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createRequire } from 'node:module'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { appendTail, findHarnessUrl } from './harness-output.js'
+import { rewriteAsarSymlinkTarget } from './asar-path.js'
 import { createPluginToolsEnv } from './plugin-tools.js'
 import { terminateProcessTree } from './process-tree.js'
 
@@ -42,22 +44,18 @@ export class HarnessRuntime {
     this.#stopping = false
     this.#stderr = ''
 
-    const child = spawn(
-      process.execPath,
-      ['--expose-internals', resolveDshBin(), 'web', '--port', '0'],
-      {
-        cwd: this.#options.workspace,
-        env: {
-          ...createPluginToolsEnv(),
-          DSH_HOME: path.join(app.getPath('userData'), 'dsh'),
-          // Electron 子进程无法使用 koffi 原生绑定（ABI 不兼容），
-          // 设置 SSH_CONNECTION 让 DSH 目录选择器降级到浏览器模式
-          SSH_CONNECTION: 'electron-desktop',
-        },
-        detached: process.platform !== 'win32',
-        stdio: ['ignore', 'pipe', 'pipe'],
+    const child = spawn(process.execPath, buildDshNodeArgs(['web', '--port', '0']), {
+      cwd: this.#options.workspace,
+      env: {
+        ...createPluginToolsEnv(),
+        DSH_HOME: path.join(app.getPath('userData'), 'dsh'),
+        // Electron 子进程无法使用 koffi 原生绑定（ABI 不兼容），
+        // 设置 SSH_CONNECTION 让 DSH 目录选择器降级到浏览器模式
+        SSH_CONNECTION: 'electron-desktop',
       },
-    )
+      detached: process.platform !== 'win32',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
 
     this.#child = child
 
@@ -165,5 +163,17 @@ export class HarnessRuntime {
 
 export function resolveDshBin(): string {
   const packageJson = require.resolve('@deepseek-ai/dsh/package.json')
-  return path.join(path.dirname(packageJson), 'lib', 'bin.js')
+  return rewriteAsarSymlinkTarget(
+    path.join(path.dirname(packageJson), 'lib', 'bin.js'),
+  )
+}
+
+/** asar 兼容入口：改写 DSH 软链目标到 app.asar.unpacked 后再加载 bin。 */
+export function resolveDshNodeEntry(): string {
+  return path.join(path.dirname(fileURLToPath(import.meta.url)), 'dsh-node-entry.js')
+}
+
+/** Electron-as-Node 启动 DSH 的统一 argv（含 asar 软链补丁入口）。 */
+export function buildDshNodeArgs(dshArgs: string[]): string[] {
+  return ['--expose-internals', resolveDshNodeEntry(), resolveDshBin(), ...dshArgs]
 }

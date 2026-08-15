@@ -6,5 +6,8 @@
   <true/>
   <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
   <true/>
+  <!-- 允许加载 profile 插件带来的第三方原生模块（如 node-pty），其签名 Team ID 与应用不同 -->
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
 </dict>
 </plist>

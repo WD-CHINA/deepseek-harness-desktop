@@ -7,7 +7,7 @@ import {
   healWebProfileManifest,
   WEB_PROFILE_BUNDLES,
 } from './plugin-installer.js'
-import { ensurePluginToolsBinDir, prependPathEntry } from './plugin-tools.js'
+import { ensurePluginToolsBinDir, prependPathEntry, ensureNpmrcRegistry, resolvePluginNpmRegistry, DEFAULT_NPM_REGISTRY } from './plugin-tools.js'
 
 describe('createWebProfileManifest', () => {
   it('matches DSH web profile template bundles', () => {
@@ -93,5 +93,26 @@ describe('plugin tools PATH helpers', () => {
     expect(nodeCmd).toContain('ELECTRON_RUN_AS_NODE=1')
     expect(nodeCmd).toContain('"C:\\Program Files\\App\\Desktop.exe"')
     expect(pnpmCmd).toContain('pnpm.cjs')
+  })
+})
+
+describe('npm registry helpers', () => {
+  it('defaults to npmmirror and allows DSH_NPM_REGISTRY override', () => {
+    expect(resolvePluginNpmRegistry({})).toBe(DEFAULT_NPM_REGISTRY)
+    expect(resolvePluginNpmRegistry({ DSH_NPM_REGISTRY: ' https://example.com/npm ' })).toBe(
+      'https://example.com/npm',
+    )
+  })
+
+  it('writes or replaces registry in .npmrc content', () => {
+    expect(ensureNpmrcRegistry('', DEFAULT_NPM_REGISTRY)).toBe(
+      `registry=${DEFAULT_NPM_REGISTRY}\n`,
+    )
+    expect(ensureNpmrcRegistry('registry=https://registry.npmjs.org/\n', DEFAULT_NPM_REGISTRY)).toBe(
+      `registry=${DEFAULT_NPM_REGISTRY}\n`,
+    )
+    expect(ensureNpmrcRegistry('shamefully-hoist=true\n', DEFAULT_NPM_REGISTRY)).toBe(
+      `shamefully-hoist=true\nregistry=${DEFAULT_NPM_REGISTRY}\n`,
+    )
   })
 })

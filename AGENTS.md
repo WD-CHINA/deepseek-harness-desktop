@@ -48,7 +48,8 @@
 - macOS 与 Windows 必须在各自原生 GitHub runner 上打包，不做跨平台正式构建。
 - 不允许通过关闭 `forceCodeSigning` 或跳过公证来伪造正式 Release 成功。
 - 签名证书只能通过 GitHub Actions Secrets 注入，不能生成或提交自签名证书替代生产证书。
-- 当前 `asar: false` 是兼容性选择；启用前必须分别验证 DSH 的 JS、二进制和平台依赖 unpack 规则。
+- `asar: true`，必须 `asarUnpack: ["**/node_modules/**/*"]`；由 `dsh-node-entry` 从 `app.asar.unpacked` 加载 DSH，保证 profile 软链目标是真实路径（勿依赖 `fs.symlinkSync` 补丁，ESM named import 不受影响）。
+- macOS entitlements 必须包含 `com.apple.security.cs.disable-library-validation`，否则 Hardened Runtime 会拒绝加载插件带来的第三方 `.node`（Team ID 与应用不一致）。
 
 ## 4. 开发流程
 

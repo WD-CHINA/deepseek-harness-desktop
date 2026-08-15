@@ -62,7 +62,10 @@
   "build": {
     "appId": "com.harness.deepseek-harness-desktop",
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
-    "asar": false,
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/**/*"
+    ],
     "directories": {
       "output": "release",
       "buildResources": "build"

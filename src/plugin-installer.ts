@@ -2,8 +2,13 @@ import { app } from 'electron'
 import { execFile } from 'node:child_process'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { resolveDshBin } from './harness-runtime.js'
-import { createPluginToolsEnv } from './plugin-tools.js'
+import { buildDshNodeArgs } from './harness-runtime.js'
+import { rewriteAsarSymlinksInTree } from './asar-path.js'
+import {
+  createPluginToolsEnv,
+  ensureNpmrcRegistry,
+  resolvePluginNpmRegistry,
+} from './plugin-tools.js'
 
 /**
  * 桌面版内置插件列表。
@@ -151,6 +156,21 @@ async function ensureProfileInitialized(): Promise<void> {
   } catch {
     await fs.writeFile(workspacePath, WEB_PROFILE_PNPM_WORKSPACE, 'utf-8')
   }
+
+  // 写入中国 npm 镜像，供 profile 内 pnpm / dshmarket 安装使用
+  const npmrcPath = path.join(profileDir, '.npmrc')
+  const registry = resolvePluginNpmRegistry()
+  let npmrc = ''
+  try {
+    npmrc = await fs.readFile(npmrcPath, 'utf-8')
+  } catch {
+    // 文件不存在
+  }
+  const nextNpmrc = ensureNpmrcRegistry(npmrc, registry)
+  if (nextNpmrc !== npmrc) {
+    await fs.writeFile(npmrcPath, nextNpmrc, 'utf-8')
+    console.log(`[plugin-installer] 已配置 npm registry: ${registry}`)
+  }
 }
 
 /**
@@ -186,13 +206,12 @@ async function ensureMinimumReleaseAgeExclude(pluginName: string): Promise<void>
  * 执行 Electron 内置 Node.js 运行 DSH CLI 命令。
  */
 function runDshCommand(args: string[], timeoutMs = 120_000): Promise<string> {
-  const dshBin = resolveDshBin()
   const dshHome = getDshHome()
 
   return new Promise<string>((resolve, reject) => {
     execFile(
       process.execPath,
-      ['--expose-internals', dshBin, ...args],
+      buildDshNodeArgs(args),
       {
         env: {
           ...createPluginToolsEnv(),
@@ -440,6 +459,7 @@ export async function installBundledPlugins(): Promise<string[]> {
  * 2. 批准所有原生构建脚本（包括 dshmarket 新增的包）
  * 3. 移除与 web 基础包冲突的包
  * 4. 修补 node-pty 的 AttachConsole 兼容性
+ * 5. 修正指向 app.asar 的损坏模块软链
  */
 export async function prepareProfile(): Promise<void> {
   // 首次启动时 profile 尚未初始化，跳过预检。
@@ -456,4 +476,10 @@ export async function prepareProfile(): Promise<void> {
   await approveBuildScripts()
   await stripIncompatiblePackages()
   await patchNodePtyConptyAgent()
+
+  const profilesModules = path.join(getDshHome(), 'profiles', 'node_modules')
+  const rewritten = rewriteAsarSymlinksInTree(profilesModules)
+  if (rewritten > 0) {
+    console.log(`[plugin-installer] 已修正 ${rewritten} 个指向 app.asar 的模块软链`)
+  }
 }

@@ -43,7 +43,7 @@ Electron Main
   └─ 关闭应用时终止 Harness 进程树
 ```
 
-桌面壳不复制或修改 Harness 前端。内置插件通过 DSH 官方 plugin 机制自动安装到 `userData/dsh/profiles/web`，下次启动时由 Harness 自动加载。桌面壳内置 `pnpm` 并通过 Electron 内置 Node 调用，不依赖用户或 CI 预装 Node/pnpm。通过 dshmarket 安装的新插件也会在每次启动前自动完成原生构建脚本批准与兼容性修补，无需手动配置。升级 Harness 时，通过精确版本、锁文件、自动化测试和跨平台打包检查控制兼容性风险。
+桌面壳不复制或修改 Harness 前端。内置插件通过 DSH 官方 plugin 机制自动安装到 `userData/dsh/profiles/web`，下次启动时由 Harness 自动加载。桌面壳内置 `pnpm` 并通过 Electron 内置 Node 调用，不依赖用户或 CI 预装 Node/pnpm；插件安装默认走中国镜像 `https://registry.npmmirror.com`（可用环境变量 `DSH_NPM_REGISTRY` 覆盖）。通过 dshmarket 安装的新插件也会在每次启动前自动完成原生构建脚本批准与兼容性修补，无需手动配置。升级 Harness 时，通过精确版本、锁文件、自动化测试和跨平台打包检查控制兼容性风险。
 
 ## 本地开发
 
@@ -86,7 +86,7 @@ Harness Web UI 首次使用时仍需添加并选中工作区，然后才能发�
 | `npm run pages:build` | 将 GitHub Pages 官网构建到 `_site/` |
 
 
-由于 Harness 运行依赖体积较大，桌面打包和逐文件签名会明显慢于普通 Electron 壳。当前 `asar` 暂时关闭，待 macOS 与 Windows 都验证明确的 unpack 规则后再启用。
+由于 Harness 运行依赖体积较大，桌面打包会明显慢于普通 Electron 壳。应用启用 `asar`，并将全部 `node_modules` unpack；启动时由 `dsh-node-entry` 从 `app.asar.unpacked` 加载 DSH，使 profile 模块软链指向真实磁盘路径（操作系统无法跟随 asar 内路径；也不能靠替换 `fs.symlinkSync`，因为 DSH 使用 ESM named import）。macOS Hardened Runtime 下还需 `com.apple.security.cs.disable-library-validation`，否则无法加载插件自带的第三方原生模块（如 `node-pty`）。
 
 ## GitHub 未签名测试包
 
@@ -132,6 +132,7 @@ npm run pack
 src/                      Electron 主进程、Harness 运行时、插件安装与测试
   main.ts                 应用入口与窗口管理
   harness-runtime.ts      DSH 子进程启动与生命周期
+  dsh-node-entry.ts       asar 下 DSH 启动入口（软链目标改写到 unpacked）
   plugin-installer.ts     插件自动安装、profile 预检与 Electron 兼容性修补
   plugin-tools.ts         内置 pnpm/node 包装，供 dsh plugin 在无系统 Node 环境下运行
   process-tree.ts         跨平台进程树清理

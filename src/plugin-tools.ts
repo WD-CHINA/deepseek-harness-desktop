@@ -2,13 +2,44 @@ import { app } from 'electron'
 import fsSync from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
+import { rewriteAsarSymlinkTarget } from './asar-path.js'
 
 const require = createRequire(import.meta.url)
+
+/** 桌面端插件安装默认使用的 npm 中国镜像（与仓库 `.npmrc` 一致）。 */
+export const DEFAULT_NPM_REGISTRY = 'https://registry.npmmirror.com'
+
+/**
+ * 解析插件安装所用 registry。
+ * 可通过环境变量 `DSH_NPM_REGISTRY` 覆盖。
+ */
+export function resolvePluginNpmRegistry(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const override = env.DSH_NPM_REGISTRY?.trim()
+  return override !== undefined && override.length > 0
+    ? override
+    : DEFAULT_NPM_REGISTRY
+}
+
+/**
+ * 确保 `.npmrc` 文本包含指定 registry（已有 `registry=` 则替换，否则追加）。
+ */
+export function ensureNpmrcRegistry(content: string, registry: string): string {
+  const line = `registry=${registry}`
+  if (/^registry\s*=/m.test(content)) {
+    return content.replace(/^registry\s*=.*$/m, line)
+  }
+  const trimmed = content.trimEnd()
+  return trimmed.length === 0 ? `${line}\n` : `${trimmed}\n${line}\n`
+}
 
 function resolvePnpmCjs(): string {
   // pnpm 的 exports 仅暴露 "." -> package.json，不能 resolve 'pnpm/package.json'
   const packageJsonPath = require.resolve('pnpm')
-  return path.join(path.dirname(packageJsonPath), 'bin', 'pnpm.cjs')
+  return rewriteAsarSymlinkTarget(
+    path.join(path.dirname(packageJsonPath), 'bin', 'pnpm.cjs'),
+  )
 }
 
 function shellSingleQuote(value: string): string {
@@ -70,16 +101,19 @@ export function prependPathEntry(binDir: string, existingPath = ''): string {
 }
 
 /**
- * 为 DSH CLI / Harness 子进程注入内置 pnpm 所在 PATH。
+ * 为 DSH CLI / Harness 子进程注入内置 pnpm 所在 PATH，以及中国 npm 镜像。
  */
 export function createPluginToolsEnv(
   baseEnv: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv {
   const binDir = path.join(app.getPath('userData'), 'plugin-tools', 'bin')
   ensurePluginToolsBinDir(binDir)
+  const registry = resolvePluginNpmRegistry(baseEnv)
   return {
     ...baseEnv,
     ELECTRON_RUN_AS_NODE: '1',
     PATH: prependPathEntry(binDir, baseEnv.PATH ?? ''),
+    npm_config_registry: registry,
+    NPM_CONFIG_REGISTRY: registry,
   }
 }
