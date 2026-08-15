@@ -374,6 +374,16 @@ export async function installBundledPlugins(): Promise<string[]> {
  * 4. 修补 node-pty 的 AttachConsole 兼容性
  */
 export async function prepareProfile(): Promise<void> {
+  // 首次启动时 profile 尚未初始化，跳过预检。
+  // 后台 installBundledPlugins() 会完成完整初始化，DSH 下次启动时加载。
+  const pkgPath = path.join(getProfileDir(), 'package.json')
+  try {
+    await fs.access(pkgPath)
+  } catch {
+    console.log('[plugin-installer] profile 尚未初始化，跳过预检')
+    return
+  }
+
   await ensureProfileInitialized()
   await approveBuildScripts()
   await stripIncompatiblePackages()
