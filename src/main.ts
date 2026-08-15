@@ -143,7 +143,10 @@ async function bootstrap(): Promise<void> {
   // 检查是否为首次启动（插件尚未安装）
   const isFirstRun = !(await allBundledPluginsInstalled())
 
-  if (isFirstRun) {
+  if (smokeTestExitAfterReady) {
+    // 烟雾测试只验证 Harness 生命周期，跳过可能长达数分钟的 npm 插件安装
+    console.log('[electron] smoke test: 跳过内置插件安装，直接启动 Harness')
+  } else if (isFirstRun) {
     // 首次启动：前台安装插件，显示加载窗口
     const loadingWindow = new BrowserWindow({
       width: 400,

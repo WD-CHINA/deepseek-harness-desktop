@@ -9,17 +9,25 @@ const require = createRequire(import.meta.url)
 /** 桌面端插件安装默认使用的 npm 中国镜像（与仓库 `.npmrc` 一致）。 */
 export const DEFAULT_NPM_REGISTRY = 'https://registry.npmmirror.com'
 
+/** CI（GitHub Actions 等境外 runner）使用的官方 registry。 */
+export const CI_NPM_REGISTRY = 'https://registry.npmjs.org'
+
 /**
  * 解析插件安装所用 registry。
- * 可通过环境变量 `DSH_NPM_REGISTRY` 覆盖。
+ * 优先级：`DSH_NPM_REGISTRY` > CI 官方源 > 中国镜像。
  */
 export function resolvePluginNpmRegistry(
   env: NodeJS.ProcessEnv = process.env,
 ): string {
   const override = env.DSH_NPM_REGISTRY?.trim()
-  return override !== undefined && override.length > 0
-    ? override
-    : DEFAULT_NPM_REGISTRY
+  if (override !== undefined && override.length > 0) return override
+
+  // GitHub-hosted runner 在境外，npmmirror 往往更慢甚至超时
+  if (env.GITHUB_ACTIONS === 'true' || env.CI === 'true') {
+    return CI_NPM_REGISTRY
+  }
+
+  return DEFAULT_NPM_REGISTRY
 }
 
 /**

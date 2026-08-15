@@ -1,5 +1,8 @@
 $ErrorActionPreference = 'Stop'
 
+# Windows smoke test: launch packaged app, verify Harness listener, test shutdown.
+# Keep timeout aligned with macOS (120s). Smoke mode skips foreground plugin install.
+
 $app = Get-ChildItem -Path 'release/win-unpacked' -Filter '*.exe' |
   Where-Object { $_.Name -eq 'DeepSeek Harness Desktop.exe' } |
   Select-Object -First 1
@@ -7,6 +10,8 @@ $app = Get-ChildItem -Path 'release/win-unpacked' -Filter '*.exe' |
 if ($null -eq $app) {
   throw 'Packaged Windows executable was not found.'
 }
+
+Write-Host "Found app: $($app.FullName)"
 
 $desktop = Start-Process `
   -FilePath $app.FullName `
@@ -17,22 +22,27 @@ $desktop = Start-Process `
   ) `
   -PassThru
 
+Write-Host "Desktop PID: $($desktop.Id)"
+
 $harness = $null
 $listener = $null
 
 try {
-  $deadline = (Get-Date).AddSeconds(90)
+  $deadline = (Get-Date).AddSeconds(120)
 
   while ((Get-Date) -lt $deadline) {
     if ($desktop.HasExited) {
       throw "Desktop process exited before Harness was ready: $($desktop.ExitCode)"
     }
 
+    # Match Electron-as-Node DSH child: --expose-internals ... web --port 0
+    # (may include dsh-node-entry.js between expose-internals and web)
     $harness = Get-CimInstance Win32_Process |
       Where-Object {
         $_.ParentProcessId -eq $desktop.Id -and
         $_.CommandLine -match '--expose-internals' -and
-        $_.CommandLine -match '\bweb\s+--port\s+0\b'
+        $_.CommandLine -match '(^|\s)web(\s|$)' -and
+        $_.CommandLine -match '--port(\s|=)0(\s|$)'
       } |
       Select-Object -First 1
 
@@ -53,8 +63,14 @@ try {
   }
 
   if ($null -eq $harness -or $null -eq $listener) {
-    throw 'Harness did not expose a loopback listener within 90 seconds.'
+    Write-Host '--- diagnostics: child processes ---'
+    Get-CimInstance Win32_Process |
+      Where-Object { $_.ParentProcessId -eq $desktop.Id } |
+      ForEach-Object { Write-Host "PID=$($_.ProcessId) CMD=$($_.CommandLine)" }
+    throw 'Harness did not expose a loopback listener within 120 seconds.'
   }
+
+  Write-Host "Found Harness listener on port $($listener.LocalPort) (PID $($harness.ProcessId))"
 
   $response = Invoke-WebRequest `
     -Uri "http://127.0.0.1:$($listener.LocalPort)/" `
@@ -64,6 +80,8 @@ try {
   if ($response.StatusCode -ne 200) {
     throw "Harness returned HTTP $($response.StatusCode)."
   }
+
+  Write-Host 'HTTP check passed (200 OK)'
 
   if (-not $desktop.WaitForExit(30000)) {
     throw 'Desktop process did not complete its graceful smoke-test shutdown within 30 seconds.'

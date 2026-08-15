@@ -7,7 +7,7 @@ import {
   healWebProfileManifest,
   WEB_PROFILE_BUNDLES,
 } from './plugin-installer.js'
-import { ensurePluginToolsBinDir, prependPathEntry, ensureNpmrcRegistry, resolvePluginNpmRegistry, DEFAULT_NPM_REGISTRY } from './plugin-tools.js'
+import { ensurePluginToolsBinDir, prependPathEntry, ensureNpmrcRegistry, resolvePluginNpmRegistry, DEFAULT_NPM_REGISTRY, CI_NPM_REGISTRY } from './plugin-tools.js'
 
 describe('createWebProfileManifest', () => {
   it('matches DSH web profile template bundles', () => {
@@ -97,11 +97,16 @@ describe('plugin tools PATH helpers', () => {
 })
 
 describe('npm registry helpers', () => {
-  it('defaults to npmmirror and allows DSH_NPM_REGISTRY override', () => {
+  it('defaults to npmmirror, uses npmjs on CI, and allows DSH_NPM_REGISTRY override', () => {
     expect(resolvePluginNpmRegistry({})).toBe(DEFAULT_NPM_REGISTRY)
-    expect(resolvePluginNpmRegistry({ DSH_NPM_REGISTRY: ' https://example.com/npm ' })).toBe(
-      'https://example.com/npm',
-    )
+    expect(resolvePluginNpmRegistry({ CI: 'true' })).toBe(CI_NPM_REGISTRY)
+    expect(resolvePluginNpmRegistry({ GITHUB_ACTIONS: 'true' })).toBe(CI_NPM_REGISTRY)
+    expect(
+      resolvePluginNpmRegistry({
+        CI: 'true',
+        DSH_NPM_REGISTRY: ' https://example.com/npm ',
+      }),
+    ).toBe('https://example.com/npm')
   })
 
   it('writes or replaces registry in .npmrc content', () => {
