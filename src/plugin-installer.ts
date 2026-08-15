@@ -25,6 +25,17 @@ function getProfileDir(): string {
 }
 
 /**
+ * 检查是否所有内置插件都已安装。
+ * 用于判断是否为首次启动（需要前台安装插件）。
+ */
+export async function allBundledPluginsInstalled(): Promise<boolean> {
+  for (const pluginName of BUNDLED_PLUGINS) {
+    if (!(await isPluginInstalled(pluginName))) return false
+  }
+  return true
+}
+
+/**
  * 检查指定插件是否已安装在 DSH web profile 中。
  * 通过检查 profile 目录下的 package.json 是否包含插件依赖来判断。
  */

@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, session, shell } from 'electron'
 import path from 'node:path'
 import { HarnessRuntime } from './harness-runtime.js'
 import { hasSameOrigin, isAllowedExternalUrl } from './harness-output.js'
-import { installBundledPlugins, prepareProfile } from './plugin-installer.js'
+import { allBundledPluginsInstalled, installBundledPlugins, prepareProfile } from './plugin-installer.js'
 
 let mainWindow: BrowserWindow | undefined
 let harness: HarnessRuntime | undefined
@@ -140,22 +140,75 @@ async function bootstrap(): Promise<void> {
     console.warn(`[electron] profile 预检失败（DSH 可能异常）：${message}`)
   }
 
-  await ensureMainWindow()
+  // 检查是否为首次启动（插件尚未安装）
+  const isFirstRun = !(await allBundledPluginsInstalled())
 
-  // 在窗口就绪后后台安装内置插件
-  // 安装成功后下次启动自动加载，避免阻塞首次启动
-  void (async () => {
+  if (isFirstRun) {
+    // 首次启动：前台安装插件，显示加载窗口
+    const loadingWindow = new BrowserWindow({
+      width: 400,
+      height: 200,
+      frame: false,
+      resizable: false,
+      transparent: true,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      webPreferences: { nodeIntegration: false, contextIsolation: true },
+    })
+    loadingWindow.loadURL(
+      `data:text/html;charset=utf-8,${encodeURIComponent(`
+        <!DOCTYPE html><html><head><style>
+          body { margin: 0; display: flex; align-items: center; justify-content: center;
+                 height: 100vh; background: rgba(30,30,30,0.95); color: #fff;
+                 font-family: -apple-system, BlinkMacSystemFont, sans-serif; border-radius: 12px; }
+          .container { text-align: center; padding: 24px; }
+          .spinner { width: 32px; height: 32px; border: 3px solid #444; border-top-color: #4f9;
+                     border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+          @keyframes spin { to { transform: rotate(360deg); } }
+          h3 { margin: 0 0 8px; font-size: 16px; font-weight: 500; }
+          p { margin: 0; font-size: 13px; color: #888; }
+        </style></head><body>
+          <div class="container">
+            <div class="spinner"></div>
+            <h3>正在安装内置插件</h3>
+            <p>首次启动需要安装侧边栏和插件市场，请稍候…</p>
+          </div>
+        </body></html>
+      `)}`
+    )
+    loadingWindow.show()
+
     try {
-      console.log('[electron] 正在后台检查并安装内置插件...')
+      console.log('[electron] 首次启动：正在前台安装内置插件...')
       const installed = await installBundledPlugins()
-      if (installed.length > 0) {
-        console.log(`[electron] 内置插件已就绪: ${installed.join(', ')}`)
-      }
+      console.log(`[electron] 内置插件已就绪: ${installed.join(', ')}`)
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
-      console.warn(`[electron] 内置插件安装失败（DSH 仍可正常运行）：${message}`)
+      console.warn(`[electron] 内置插件安装失败：${message}`)
+      dialog.showErrorBox(
+        '插件安装失败',
+        `内置插件安装失败，部分功能可能不可用。\n\n${message}\n\n可稍后在设置中重新安装。`
+      )
     }
-  })()
+
+    loadingWindow.close()
+  } else {
+    // 非首次启动：后台检查插件更新
+    void (async () => {
+      try {
+        console.log('[electron] 正在后台检查内置插件...')
+        const installed = await installBundledPlugins()
+        if (installed.length > 0) {
+          console.log(`[electron] 内置插件已就绪: ${installed.join(', ')}`)
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.warn(`[electron] 内置插件检查失败（DSH 仍可正常运行）：${message}`)
+      }
+    })()
+  }
+
+  await ensureMainWindow()
 
   if (smokeTestExitAfterReady) {
     setTimeout(() => app.quit(), 5_000)
