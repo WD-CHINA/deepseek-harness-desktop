@@ -1,7 +1,7 @@
 {
   "name": "deepseek-harness-desktop",
   "productName": "DeepSeek Harness Desktop",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "private": true,
   "description": "Electron desktop host for the DeepSeek Harness Web UI",
   "author": "Bill",
