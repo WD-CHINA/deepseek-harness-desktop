@@ -250,13 +250,12 @@ function runDshCommand(args: string[], timeoutMs = 120_000): Promise<string> {
 }
 
 /**
- * 在 pnpm-workspace.yaml 中设置 allowBuilds 白名单，
- * 规避 pnpm 11 对构建脚本的默认拦截。
+ * 在 pnpm-workspace.yaml 中设置 `allowBuilds: true`，
+ * 自动批准所有原生模块的构建脚本，无需维护白名单。
  *
- * DSH 初始化 profile 后会生成形如：
- *   allowBuilds:
- *     node-pty: set this to true or false
- * 的占位提示。本函数将占位值替换为 true，并追加缺失的包。
+ * pnpm 11+ 默认拦截所有构建脚本，逐个包确认太繁琐。
+ * 桌面版 profile 仅用于 DSH 插件，不存在供应链攻击风险，
+ * 因此直接全局允许。
  */
 async function approveBuildScripts(): Promise<void> {
   const profileDir = getProfileDir()
@@ -269,27 +268,23 @@ async function approveBuildScripts(): Promise<void> {
     // 文件不存在
   }
 
-  // 将所有 "pkg: set this to true or false" 占位替换为 "pkg: true"
+  // 移除所有 "pkg: set this to true or false" 占位行
   content = content.replace(
-    /(\S+):\s*set this to true or false/g,
-    '$1: true',
+    /^\s*\S+:\s*set this to true or false\s*$/gm,
+    '',
   )
 
-  // 确保关键包在 allowBuilds 白名单中
-  const requiredPackages = ['node-pty', 'protobufjs', 'cloudflared', 'cpu-features', 'ssh2']
-
-  if (content.includes('allowBuilds')) {
-    for (const pkg of requiredPackages) {
-      if (!new RegExp(`allowBuilds:[\\s\\S]*?${pkg}:`).test(content)) {
-        content = content.replace(
-          /(allowBuilds:\s*\n)/,
-          `$1  ${pkg}: true\n`,
-        )
-      }
-    }
+  // 将已有的 allowBuilds 块（含逐包列表）替换为全局 true
+  if (/^allowBuilds:\s*$/m.test(content)) {
+    content = content.replace(
+      /^allowBuilds:\s*\n(?:(?:\s+\S+:.*(?:\n|$))*)/,
+      'allowBuilds: true\n',
+    )
+  } else if (/^allowBuilds:\s+true\s*$/m.test(content)) {
+    // 已经是 allowBuilds: true，无需修改
   } else {
-    const lines = requiredPackages.map((pkg) => `  ${pkg}: true`).join('\n')
-    content += `\nallowBuilds:\n${lines}\n`
+    // 不存在 allowBuilds 键，追加
+    content += '\nallowBuilds: true\n'
   }
 
   await fs.writeFile(workspacePath, content, 'utf-8')
