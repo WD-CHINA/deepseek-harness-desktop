@@ -19,6 +19,7 @@ DeepSeek Harness Desktop 是 [deepseek-ai/deepseek-harness](https://github.com/d
 ## 核心能力
 
 - 内置 [DSH Better Sidebar](https://github.com/omdsh-dev/DSH-better-sidebar) `0.12.2`、[DSH Market](https://github.com/dsh-market/dsh-market) `1.5.0` 与 [@linxin666/dsh-web-ui-all](https://www.npmjs.com/package/@linxin666/dsh-web-ui-all) `0.1.15`（Web UI 全家桶），首次启动自动安装，已装旧版会升级到上述精确版本。
+- 命令行插件管理：`plugin add` / `remove` / `list` 子命令，复用桌面版 Node、pnpm 和 DSH profile，无需全局安装任何工具。
 - 插件自动注册：每次启动前自动批准原生构建脚本、清理不兼容包、修补 node-pty 兼容性，dshmarket 安装的新插件无需手动配置。
 - 支持 macOS Apple Silicon、macOS Intel 和 Windows x64 原生构建。
 - Harness 服务仅监听 `127.0.0.1` 的系统随机端口。
@@ -80,10 +81,12 @@ Harness Web UI 首次使用时仍需添加并选中工作区，然后才能发�
 | `npm run typecheck`   | TypeScript 类型检查               |
 | `npm test`            | 执行 Vitest 测试                  |
 | `npm run verify`      | 类型检查、测试和构建                    |
-| `npm run pack`        | 生成当前平台未压缩应用目录                 |
-| `npm run pack:mac`    | 生成 macOS 安装产物                 |
-| `npm run pack:win`    | 生成 Windows 安装产物               |
-| `npm run pages:build` | 将 GitHub Pages 官网构建到 `_site/` |
+| `npm run dsh -- plugin add <pkg>` | 命令行安装插件到桌面版 web profile |
+| `npm run dsh -- plugin list`      | 列出已安装的插件                     |
+| `npm run pack`                    | 生成当前平台未压缩应用目录               |
+| `npm run pack:mac`                | 生成 macOS 安装产物                 |
+| `npm run pack:win`                | 生成 Windows 安装产物               |
+| `npm run pages:build`             | 将 GitHub Pages 官网构建到 `_site/` |
 
 
 由于 Harness 运行依赖体积较大，桌面打包会明显慢于普通 Electron 壳。应用启用 `asar`，并将全部 `node_modules` unpack；启动时由 `dsh-node-entry` 从 `app.asar.unpacked` 加载 DSH，使 profile 模块软链指向真实磁盘路径（操作系统无法跟随 asar 内路径；也不能靠替换 `fs.symlinkSync`，因为 DSH 使用 ESM named import）。macOS Hardened Runtime 下还需 `com.apple.security.cs.disable-library-validation`，否则无法加载插件自带的第三方原生模块（如 `node-pty`）。
@@ -133,6 +136,7 @@ src/                      Electron 主进程、Harness 运行时、插件安装�
   main.ts                 应用入口与窗口管理
   harness-runtime.ts      DSH 子进程启动与生命周期
   dsh-node-entry.ts       asar 下 DSH 启动入口（软链目标改写到 unpacked）
+  cli.ts                  命令行插件管理（参数解析、help 输出、命令调度）
   plugin-installer.ts     插件自动安装、profile 预检与 Electron 兼容性修补
   plugin-tools.ts         内置 pnpm/node 包装，供 dsh plugin 在无系统 Node 环境下运行
   process-tree.ts         跨平台进程树清理
@@ -173,6 +177,24 @@ AGENTS.md                 AI/自动化开发约束
 1. **构建脚本批准**：自动批准所有原生模块的 `set this to true or false` 占位（如 node-pty、ssh2、cloudflared 等）
 2. **不兼容包清理**：自动移除与 web 基础包冲突的终端 TUI 包
 3. **node-pty 补丁**：修补 `conpty_console_list_agent.js`，使 `AttachConsole()` 在 `ELECTRON_RUN_AS_NODE` 环境下优雅降级
+
+## 命令行插件管理
+
+桌面应用本身作为 DSH CLI 的代理层，使用内置 Node + pnpm 操作 web profile。命令行安装和 GUI 使用完全相同的 `DSH_HOME`、profile 和兼容性处理流程，用户机器不需要预装 Node.js、pnpm 或 dsh。
+
+```bash
+# 开发环境
+npm run dsh -- plugin add dsh-xxx@1.2.3
+npm run dsh -- plugin list
+npm run dsh -- plugin remove dsh-xxx
+
+# 打包后
+"DeepSeek Harness Desktop" plugin add dsh-xxx@1.2.3
+```
+
+CLI 模式下不会启动 BrowserWindow 和 `dsh web`，执行完成后进程自动退出。如果 GUI 正在运行，CLI 会提示先退出应用再执行插件管理命令（避免运行时修改 `node_modules` 导致状态不一致）。支持 `--help` 查看完整命令说明。
+
+安装流程：初始化 profile → 配置 npm 镜像 → 批准构建脚本 → `dsh plugin add` → 兼容性修补（node-pty 补丁、asar 软链修复、不兼容包清理）。
 
 ## 开发约束
 

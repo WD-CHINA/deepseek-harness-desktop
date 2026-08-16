@@ -34,6 +34,7 @@
         <a href="#architecture">架构</a>
         <a href="#sidebar">侧边栏</a>
         <a href="#marketplace">插件市场</a>
+        <a href="#cli">命令行</a>
         <a href="#platforms">平台</a>
         <a href="#quick-start">开始使用</a>
         <a class="nav-github" href="https://github.com/WD-CHINA/deepseek-harness-desktop">GitHub</a>
@@ -185,6 +186,60 @@
             <h3>自动注册</h3>
             <p>新插件的原生构建脚本、兼容性修补在下次启动时自动完成。</p>
           </article>
+        </div>
+      </section>
+
+      <section class="section cli-showcase" id="cli">
+        <div class="section-heading">
+          <p class="eyebrow">COMMAND LINE</p>
+          <h2>命令行插件管理。</h2>
+          <p>桌面应用本身即 DSH CLI 代理。内置 Node + pnpm，无需全局安装任何工具即可管理插件。</p>
+        </div>
+
+        <div class="cli-demo">
+          <div class="cli-window">
+            <div class="cli-titlebar">
+              <span class="cli-dots"><i></i><i></i><i></i></span>
+              <span>Terminal</span>
+            </div>
+            <div class="cli-body">
+              <div class="cli-line">
+                <span class="cli-prompt">$</span>
+                <span class="cli-cmd">dsh-desktop plugin add <em>dsh-remote-web-ui@1.0.0</em></span>
+              </div>
+              <div class="cli-line dim">
+                <span class="cli-prompt"></span>
+                <span>正在安装插件: dsh-remote-web-ui@1.0.0</span>
+              </div>
+              <div class="cli-line dim">
+                <span class="cli-prompt"></span>
+                <span>[plugin-installer] dsh-remote-web-ui@1.0.0 安装完成</span>
+              </div>
+              <div class="cli-line success">
+                <span class="cli-prompt"></span>
+                <span>插件安装成功: dsh-remote-web-ui@1.0.0</span>
+              </div>
+              <div class="cli-line">
+                <span class="cli-prompt">$</span>
+                <span class="cli-cmd">dsh-desktop plugin list</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cli-features">
+            <article>
+              <h3>&#128230; plugin add</h3>
+              <p>安装插件到桌面版 web profile，自动处理原生构建和兼容性。</p>
+            </article>
+            <article>
+              <h3>&#128203; plugin list</h3>
+              <p>列出当前已安装的所有插件及其版本。</p>
+            </article>
+            <article>
+              <h3>&#128465; plugin remove</h3>
+              <p>卸载插件并执行兼容性清理。</p>
+            </article>
+          </div>
         </div>
       </section>
 
