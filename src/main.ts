@@ -3,6 +3,7 @@ import path from 'node:path'
 import { HarnessRuntime } from './harness-runtime.js'
 import { hasSameOrigin, isAllowedExternalUrl } from './harness-output.js'
 import { allBundledPluginsInstalled, installBundledPlugins, prepareProfile } from './plugin-installer.js'
+import { CLI_HELP_TEXT, parseCliCommand, runCliCommand } from './cli.js'
 
 let mainWindow: BrowserWindow | undefined
 let harness: HarnessRuntime | undefined
@@ -10,6 +11,7 @@ let harnessStartPromise: Promise<string> | undefined
 let windowCreationPromise: Promise<void> | undefined
 let quitting = false
 const smokeTestExitAfterReady = process.argv.includes('--smoke-test-exit-after-ready')
+const cliCommand = parseCliCommand(process.argv)
 
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.harness.deepseek-harness-desktop')
@@ -221,7 +223,15 @@ async function bootstrap(): Promise<void> {
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
 
 if (!hasSingleInstanceLock) {
-  app.quit()
+  if (cliCommand !== undefined) {
+    // CLI 模式下 GUI 已运行，提示用户先退出再执行插件管理
+    console.error(
+      'DeepSeek Harness Desktop 正在运行。请先退出应用，再执行插件管理命令。',
+    )
+    app.exit(2)
+  } else {
+    app.quit()
+  }
 } else {
   app.on('second-instance', () => {
     if (!app.isReady()) return
@@ -232,14 +242,33 @@ if (!hasSingleInstanceLock) {
     })
   })
 
-  app.whenReady()
-    .then(bootstrap)
-    .catch((error: unknown) => {
-      const message = error instanceof Error ? error.stack ?? error.message : String(error)
-      console.error(`[electron] 启动失败：${message}`)
-      dialog.showErrorBox('DeepSeek Harness 启动失败', message)
-      app.quit()
-    })
+  // --help 立即输出帮助文本并退出
+  if (process.argv.includes('--help') && cliCommand === undefined) {
+    process.stdout.write(CLI_HELP_TEXT)
+    app.exit(0)
+  } else if (cliCommand !== undefined) {
+    // CLI 模式：执行插件命令后退出，不启动 GUI
+    app.whenReady()
+      .then(async () => {
+        await runCliCommand(cliCommand)
+        app.exit(0)
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.stack ?? error.message : String(error)
+        console.error(`[cli] 命令执行失败：${message}`)
+        app.exit(1)
+      })
+  } else {
+    // GUI 模式：正常启动桌面应用
+    app.whenReady()
+      .then(bootstrap)
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.stack ?? error.message : String(error)
+        console.error(`[electron] 启动失败：${message}`)
+        dialog.showErrorBox('DeepSeek Harness 启动失败', message)
+        app.quit()
+      })
+  }
 }
 
 app.on('activate', () => {

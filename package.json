@@ -20,6 +20,10 @@
     "pages:build": "node scripts/build-pages.mjs",
     "dev": "npm run build && electron .",
     "start": "npm run build && electron .",
+    "dsh": "npm run build && electron .",
+    "plugin:add": "npm run build && electron . plugin add",
+    "plugin:remove": "npm run build && electron . plugin remove",
+    "plugin:list": "npm run build && electron . plugin list",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "verify": "npm run check:runtime-deps && npm run typecheck && npm test && npm run build",
@@ -66,6 +70,7 @@
     "asarUnpack": [
       "**/node_modules/**/*"
     ],
+    "npmRebuild": false,
     "directories": {
       "output": "release",
       "buildResources": "build"

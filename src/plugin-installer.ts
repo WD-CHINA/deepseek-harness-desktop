@@ -485,6 +485,90 @@ export async function installBundledPlugins(): Promise<string[]> {
  * 4. 修补 node-pty 的 AttachConsole 兼容性
  * 5. 修正指向 app.asar 的损坏模块软链
  */
+/**
+ * 安装任意 DSH 插件到 web profile。
+ *
+ * 流程：
+ * 1. 初始化桌面版 web profile
+ * 2. 避免 pnpm minimumReleaseAge 阻止新发布插件
+ * 3. 处理已有原生模块构建权限
+ * 4. 调用官方 DSH CLI 安装
+ * 5. 安装完成后执行兼容性修复
+ */
+export async function installDshPlugin(spec: string): Promise<void> {
+  const normalized = spec.trim()
+
+  if (!normalized || normalized.startsWith('-')) {
+    throw new Error(`无效的插件规格: ${spec}`)
+  }
+
+  const pluginName = getPluginNameFromSpec(normalized)
+
+  console.log(`[plugin-installer] 准备安装插件: ${normalized}`)
+
+  await ensureProfileInitialized()
+  await ensureMinimumReleaseAgeExclude(pluginName)
+  await approveBuildScripts()
+
+  await runDshCommand(
+    ['plugin', '--profile', 'web', 'add', normalized],
+    300_000,
+  )
+
+  await prepareProfile()
+
+  console.log(`[plugin-installer] 插件安装成功: ${normalized}`)
+}
+
+/**
+ * 从 web profile 中卸载指定插件。
+ */
+export async function removeDshPlugin(pluginName: string): Promise<void> {
+  const normalized = pluginName.trim()
+
+  if (!normalized || normalized.startsWith('-')) {
+    throw new Error(`无效的插件名称: ${pluginName}`)
+  }
+
+  await runDshCommand([
+    'plugin',
+    '--profile',
+    'web',
+    'remove',
+    normalized,
+  ])
+
+  await prepareProfile()
+
+  console.log(`[plugin-installer] 插件卸载成功: ${normalized}`)
+}
+
+/**
+ * 列出 web profile 中已安装的插件。
+ */
+export async function listDshPlugins(): Promise<string> {
+  return await runDshCommand(['plugin', '--profile', 'web', 'list'], 30_000)
+}
+
+/**
+ * 从包规格中提取插件名称（不含版本号）。
+ */
+export function getPluginNameFromSpec(spec: string): string {
+  const value = spec.trim()
+
+  if (value.startsWith('@')) {
+    const slash = value.indexOf('/')
+    if (slash < 0) {
+      throw new Error(`无效的插件包名: ${spec}`)
+    }
+    const versionSeparator = value.indexOf('@', slash)
+    return versionSeparator < 0 ? value : value.slice(0, versionSeparator)
+  }
+
+  const versionSeparator = value.lastIndexOf('@')
+  return versionSeparator > 0 ? value.slice(0, versionSeparator) : value
+}
+
 export async function prepareProfile(): Promise<void> {
   // 首次启动时 profile 尚未初始化，跳过预检。
   // 后台 installBundledPlugins() 会完成完整初始化，DSH 下次启动时加载。
