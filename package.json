@@ -15,6 +15,9 @@
   },
   "type": "module",
   "main": "dist/main.js",
+  "bin": {
+    "dsh-desktop": "./bin/dsh-desktop.mjs"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "pages:build": "node scripts/build-pages.mjs",
