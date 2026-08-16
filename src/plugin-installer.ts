@@ -582,6 +582,56 @@ export function getPluginNameFromSpec(spec: string): string {
   return versionSeparator > 0 ? value.slice(0, versionSeparator) : value
 }
 
+/**
+ * 清理 profiles/node_modules 中的非软链条目。
+ *
+ * DSH 的 healProfilesModuleFallback 要求此目录中的包均为软链
+ * （指向 DSH 安装目录或 app.asar.unpacked）。若 pnpm 在安装插件时
+ * 将某些包创建为普通目录（如 @opentelemetry/resources），DSH 启动时
+ * 会拒绝并报错："exists and is not a symlink"。
+ * 在启动 DSH 前预先移除这些条目，让 healProfilesModuleFallback 自行重建为软链。
+ */
+async function cleanNonSymlinkModules(modulesDir: string): Promise<number> {
+  let removed = 0
+
+  let entries: import('node:fs').Dirent[]
+  try {
+    entries = await fs.readdir(modulesDir, { withFileTypes: true })
+  } catch {
+    return 0
+  }
+
+  for (const entry of entries) {
+    const fullPath = path.join(modulesDir, entry.name)
+
+    if (entry.isSymbolicLink()) continue
+
+    if (entry.name.startsWith('@') && entry.isDirectory()) {
+      // 递归进入 scoped 包目录（如 @opentelemetry/）
+      removed += await cleanNonSymlinkModules(fullPath)
+      // 若 scope 目录已空则一并删除
+      try {
+        const remaining = await fs.readdir(fullPath)
+        if (remaining.length === 0) {
+          await fs.rmdir(fullPath)
+        }
+      } catch {
+        // ignore
+      }
+      continue
+    }
+
+    if (entry.isDirectory()) {
+      // 普通目录（非软链）—— DSH 需要软链，删除让其重建
+      await fs.rm(fullPath, { recursive: true, force: true })
+      removed += 1
+      console.log(`[plugin-installer] 已移除非软链模块目录: ${entry.name}`)
+    }
+  }
+
+  return removed
+}
+
 export async function prepareProfile(): Promise<void> {
   // 首次启动时 profile 尚未初始化，跳过预检。
   // 后台 installBundledPlugins() 会完成完整初始化，DSH 下次启动时加载。
@@ -599,6 +649,13 @@ export async function prepareProfile(): Promise<void> {
   await patchNodePtyConptyAgent()
 
   const profilesModules = path.join(getDshHome(), 'profiles', 'node_modules')
+
+  // 清理非软链模块目录，避免 DSH healProfilesModuleFallback 报错
+  const cleaned = await cleanNonSymlinkModules(profilesModules)
+  if (cleaned > 0) {
+    console.log(`[plugin-installer] 已清理 ${cleaned} 个非软链模块目录`)
+  }
+
   const rewritten = rewriteAsarSymlinksInTree(profilesModules)
   if (rewritten > 0) {
     console.log(`[plugin-installer] 已修正 ${rewritten} 个指向 app.asar 的模块软链`)
