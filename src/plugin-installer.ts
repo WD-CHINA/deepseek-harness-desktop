@@ -187,6 +187,14 @@ async function ensureProfileInitialized(): Promise<void> {
 }
 
 /**
+ * YAML 中以 `@` 开头的值是保留字符，必须用单引号包裹。
+ * 例如 `@scope/pkg` → `'@scope/pkg'`
+ */
+function yamlQuote(value: string): string {
+  return value.startsWith('@') ? `'${value}'` : value
+}
+
+/**
  * 确保 pnpm-workspace.yaml 中包含 minimumReleaseAgeExclude 配置，
  * 避免 pnpm 拦截发布时间不足 24 小时的新版本。
  */
@@ -199,17 +207,27 @@ async function ensureMinimumReleaseAgeExclude(pluginName: string): Promise<void>
     content = ''
   }
 
-  if (content.includes(pluginName)) return
+  const quoted = yamlQuote(pluginName)
 
-  const addition = `\nminimumReleaseAgeExclude:\n  - ${pluginName}\n`
+  // 检查是否已存在（同时检查带引号和不带引号的版本）
+  if (content.includes(pluginName)) {
+    // 修复未加引号的 @scope 条目
+    const unquoted = `  - ${pluginName}\n`
+    if (pluginName.startsWith('@') && content.includes(unquoted)) {
+      content = content.replace(unquoted, `  - ${quoted}\n`)
+      await fs.writeFile(workspacePath, content, 'utf-8')
+    }
+    return
+  }
+
   if (content.includes('minimumReleaseAgeExclude')) {
     // 键已存在，追加条目
     content = content.replace(
       /(minimumReleaseAgeExclude:\s*\n)/,
-      `$1  - ${pluginName}\n`,
+      `$1  - ${quoted}\n`,
     )
   } else {
-    content += addition
+    content += `\nminimumReleaseAgeExclude:\n  - ${quoted}\n`
   }
 
   await fs.writeFile(workspacePath, content, 'utf-8')
